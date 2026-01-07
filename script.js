@@ -287,13 +287,21 @@ function renderMarket() {
             <button class="btn-primary" onclick="buyFighter(${i})" style="background:#10b981; width:100%;">Sign</button>
         </div>`).join('');
 }
-
 function showView(viewId) {
+    // Hide all views
     document.querySelectorAll('.view').forEach(v => v.style.display = 'none');
-    document.getElementById('view-' + viewId).style.display = 'block';
+    
+    // Show the selected view
+    const target = document.getElementById('view-' + viewId);
+    if (target) {
+        target.style.display = 'block';
+    }
+
+    // Trigger the specific render function for that view
     if (viewId === 'stable') renderStable();
     if (viewId === 'shop') renderShop();
     if (viewId === 'market') renderMarket();
+    if (viewId === 'history') renderHistory();
 }
 
 function saveData() { localStorage.setItem('theCageSave', JSON.stringify(gameState)); }
@@ -315,3 +323,4 @@ function openAdminConsole() {
         updateUI(); saveData();
     }
 }
+
