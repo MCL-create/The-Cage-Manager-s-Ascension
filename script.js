@@ -8,8 +8,8 @@ let gameState = {
     marketFighters: [], 
     gymXP: 0,
     gymLevel: 1,
-    gymName: "The Cage Gym", // Custom Gym Name
-    gymLogo: null,           // Base64 Image Data
+    gymName: "The Cage Gym",
+    gymLogo: null,           
     bestEverStreak: 0,
     totalGymWins: 0,
     sessionStart: Date.now()
@@ -30,7 +30,7 @@ const rivalPool = [
 const bioPool = ["Former Olympian", "Underground legend", "Fast but fragile", "Iron chin", "Technical master"];
 const recruitEmojis = ["🥊", "🥋", "👺", "🥷", "🦾", "👊", "🔥", "🏆"];
 
-// --- 2. CUSTOMIZATION LOGIC (LOGO & NAME) ---
+// --- 2. CUSTOMIZATION LOGIC ---
 
 function uploadGymLogo(input) {
     if (input.files && input.files[0]) {
@@ -45,7 +45,6 @@ function uploadGymLogo(input) {
 }
 
 function updateGymName(newName) {
-    // Clean up extra spaces or line breaks from contenteditable
     const cleanedName = newName.replace(/\n/g, " ").trim();
     gameState.gymName = cleanedName || "The Cage Gym";
     saveData();
@@ -235,12 +234,10 @@ function buyFighter(index) {
 // --- 6. UI & SYSTEM ---
 
 function updateUI() {
-    // Header Stats
     document.getElementById('points-val').innerText = gameState.points.toLocaleString();
     document.getElementById('energy-val').innerText = `${gameState.energy}/10`;
     document.getElementById('week-val').innerText = gameState.week;
 
-    // Gym XP & Rank
     const xpNeeded = gameState.gymLevel * 500;
     const percentage = (gameState.gymXP / xpNeeded) * 100;
     const xpBar = document.getElementById('xp-bar');
@@ -250,7 +247,6 @@ function updateUI() {
     if (document.getElementById('best-streak-val')) document.getElementById('best-streak-val').innerText = gameState.bestEverStreak;
     if (document.getElementById('total-wins-val')) document.getElementById('total-wins-val').innerText = gameState.totalGymWins;
 
-    // Customization Load
     if (document.getElementById('gym-name-display')) document.getElementById('gym-name-display').innerText = gameState.gymName;
     if (gameState.gymLogo && document.getElementById('gym-logo-img')) {
         document.getElementById('gym-logo-img').src = gameState.gymLogo;
@@ -349,17 +345,20 @@ function saveData() {
     localStorage.setItem('theCageSave', JSON.stringify(gameState)); 
 }
 
+// --- 7. INITIALIZATION ---
+
 window.onload = () => {
     const saved = localStorage.getItem('theCageSave');
     if (saved) {
         const parsed = JSON.parse(saved);
-        // Merge saved data into default gameState
         gameState = {...gameState, ...parsed}; 
     }
     if (gameState.marketFighters.length === 0) generateMarketFighters();
     updateUI();
-// --- COACH ADMIN CONSOLE ---
-const COACH_CODE = "1234"; // You can change this to your own secret code
+};
+
+// --- 8. COACH ADMIN CONSOLE (Moved outside for global scope) ---
+const COACH_CODE = "1234";
 
 function openAdminConsole() {
     const code = prompt("Enter Coach Access Code:");
@@ -392,5 +391,3 @@ function openAdminConsole() {
         alert("Access Denied: Incorrect Coach Code.");
     }
 }
-
-
