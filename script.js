@@ -358,9 +358,8 @@ window.onload = () => {
     }
     if (gameState.marketFighters.length === 0) generateMarketFighters();
     updateUI();
-
-};
-const COACH_CODE = "1234"; // You can change this to any password you like
+// --- COACH ADMIN CONSOLE ---
+const COACH_CODE = "1234"; // You can change this to your own secret code
 
 function openAdminConsole() {
     const code = prompt("Enter Coach Access Code:");
@@ -380,7 +379,7 @@ function openAdminConsole() {
             gameState.energy = 10;
             alert("⚡ Energy fully restored.");
         } else if (action === "3") {
-            if (confirm("Are you sure? This will delete ALL fighters and progress.")) {
+            if (confirm("Are you sure? This will delete ALL progress.")) {
                 localStorage.removeItem('theCageSave');
                 location.reload();
                 return;
@@ -393,3 +392,5 @@ function openAdminConsole() {
         alert("Access Denied: Incorrect Coach Code.");
     }
 }
+};
+
