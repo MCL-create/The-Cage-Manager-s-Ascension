@@ -1,0 +1,43 @@
+:root {
+    --bg: #0f172a; --card: #1e293b; --accent: #ef4444; 
+    --gold: #f59e0b; --text: #f8fafc; --border: #334155;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    background-color: var(--bg); color: var(--text);
+    font-family: -apple-system, sans-serif;
+    display: flex; flex-direction: column; height: 100vh; overflow: hidden;
+}
+
+.top-nav {
+    background: var(--card); padding: 12px; display: flex;
+    justify-content: space-between; border-bottom: 2px solid var(--border);
+}
+
+.container { display: flex; flex: 1; flex-direction: column; overflow: hidden; }
+
+.sidebar {
+    background: #0b1120; display: flex; justify-content: space-around;
+    padding: 10px; border-top: 1px solid var(--border); order: 2;
+}
+
+.sidebar button { background: none; border: none; color: white; font-size: 0.8rem; flex: 1; cursor: pointer; }
+
+#main-content { order: 1; flex: 1; padding: 20px; overflow-y: auto; }
+
+.action-card { background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 15px; }
+
+.btn-primary { background: var(--accent); color: white; border: none; padding: 15px; border-radius: 10px; width: 100%; font-weight: bold; cursor: pointer; }
+
+.custom-input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; background: #0b1120; color: white; border: 1px solid var(--border); }
+
+.slider { width: 100%; margin: 10px 0; }
+.slider-labels { display: flex; justify-content: space-between; font-size: 0.8rem; color: #94a3b8; }
+
+@media (min-width: 768px) {
+    .container { flex-direction: row; }
+    .sidebar { order: 0; flex-direction: column; width: 150px; border-top: none; border-right: 1px solid var(--border); }
+    .sidebar button { margin-bottom: 10px; text-align: left; }
+}
