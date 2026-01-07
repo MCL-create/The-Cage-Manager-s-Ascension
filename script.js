@@ -50,7 +50,7 @@ function updateGymName(newName) {
     saveData();
 }
 
-// --- 3. CORE PROGRESSION ---
+// --- 3. CORE PROGRESSION & AGING ---
 
 function addGymXP(amount) {
     const xpNeeded = gameState.gymLevel * 500; 
@@ -70,6 +70,19 @@ function processWeekReset() {
     gameState.week++;
     gameState.energy = 10;
     
+    // YEARLY AGING LOGIC (Every 52 weeks)
+    if (gameState.week > 1 && (gameState.week - 1) % 52 === 0) {
+        gameState.stable.forEach(f => {
+            f.age = (f.age || 20) + 1;
+            // Physical decline starts at age 33
+            if (f.age >= 33) {
+                f.striking = Math.max(10, f.striking - 3);
+                f.grappling = Math.max(10, f.grappling - 3);
+            }
+        });
+        alert("📅 A YEAR HAS PASSED: Your fighters are a year older. Veterans over 32 may see stats decline!");
+    }
+
     let bonusText = "";
     if (gameState.gymLevel >= 3) {
         const bonus = gameState.gymLevel * 100;
@@ -148,7 +161,12 @@ function processFightResult(fighter, winChance, winPrize, lossPrize, matchType) 
 
 function trainFighter(index, stat) {
     if (gameState.points < 100) return alert("Not enough points!");
-    const gain = Math.floor(Math.random() * 4) + 2;
+    
+    // Older fighters gain less from training
+    const age = gameState.stable[index].age || 20;
+    const agePenalty = age > 30 ? 1 : 0;
+    const gain = Math.max(1, (Math.floor(Math.random() * 4) + 2) - agePenalty);
+    
     gameState.stable[index][stat] += gain;
     gameState.points -= 100;
     
@@ -184,6 +202,7 @@ function createFighter() {
     gameState.stable.push({
         name: name,
         emoji: randomEmoji,
+        age: 18 + Math.floor(Math.random() * 4), // 18-22
         striking: 40 + Math.floor(sliderVal / 2),
         grappling: 40 + Math.floor((100 - sliderVal) / 2),
         wins: 0, losses: 0, streak: 0
@@ -206,6 +225,7 @@ function generateMarketFighters() {
         gameState.marketFighters.push({
             name: choice.n,
             emoji: choice.e,
+            age: 19 + Math.floor(Math.random() * 10), // 19-29
             striking: strike,
             grappling: grapple,
             cost: 400 + (strike + grapple) * 2,
@@ -220,6 +240,7 @@ function buyFighter(index) {
     gameState.stable.push({
         name: fighter.name,
         emoji: fighter.emoji,
+        age: fighter.age,
         striking: fighter.striking,
         grappling: fighter.grappling,
         wins: 0, losses: 0, streak: 0
@@ -267,6 +288,7 @@ function renderStable() {
 
     list.innerHTML = gameState.stable.map((f, i) => {
         const isChamp = f.streak >= 5;
+        const isVeteran = (f.age || 20) >= 33;
         const rivalOptions = rivalPool.map((r, ri) => 
             `<option value="${ri}">${r.emoji} ${r.name} (S:${r.striking}/G:${r.grappling})</option>`
         ).join('');
@@ -275,7 +297,9 @@ function renderStable() {
             <div class="action-card" style="text-align:center; border: ${isChamp ? '2px solid #f59e0b' : '1px solid #334155'};">
                 <div style="font-size: 3rem; margin-bottom: 5px;">${f.emoji || '🥋'}</div>
                 <h3 style="color:#f59e0b; margin-bottom:2px;">${f.name} ${isChamp ? '🏆' : ''}</h3>
-                <p style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 10px;">Streak: ${f.streak || 0}</p>
+                <p style="font-size: 0.7rem; color: ${isVeteran ? '#ef4444' : '#94a3b8'}; margin-bottom: 10px;">
+                    <b>Age: ${f.age || 20}</b> ${isVeteran ? '(Veteran)' : '(Prime)'} | Streak: ${f.streak || 0}
+                </p>
                 <p>💥 ${f.striking} | 🤼 ${f.grappling}</p>
                 
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-top:10px;">
@@ -309,6 +333,7 @@ function renderMarket() {
         <div class="action-card" style="text-align:center;">
             <div style="font-size: 3.5rem; margin-bottom: 5px;">${f.emoji || '👤'}</div>
             <h3 style="color:#f59e0b; margin-bottom:2px;">${f.name}</h3>
+            <p style="font-size:0.8rem; color:#94a3b8; margin-bottom:5px;">Age: ${f.age}</p>
             <p>💥 ${f.striking} | 🤼 ${f.grappling}</p>
             <button class="btn-primary" onclick="buyFighter(${i})" style="background:#10b981; margin-top:10px; width:100%;">Sign (💰${f.cost})</button>
         </div>
@@ -357,7 +382,7 @@ window.onload = () => {
     updateUI();
 };
 
-// --- 8. COACH ADMIN CONSOLE (Moved outside for global scope) ---
+// --- 8. COACH ADMIN CONSOLE ---
 const COACH_CODE = "1234";
 
 function openAdminConsole() {
