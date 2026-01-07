@@ -358,4 +358,38 @@ window.onload = () => {
     }
     if (gameState.marketFighters.length === 0) generateMarketFighters();
     updateUI();
+
 };
+const COACH_CODE = "1234"; // You can change this to any password you like
+
+function openAdminConsole() {
+    const code = prompt("Enter Coach Access Code:");
+    
+    if (code === COACH_CODE) {
+        const action = prompt(
+            "COACH CONSOLE LOADED\n" +
+            "1: Give 💰1,000 Points\n" +
+            "2: Refill ⚡ Energy\n" +
+            "3: Reset Gym (Wipe Everything)"
+        );
+
+        if (action === "1") {
+            gameState.points += 1000;
+            alert("💰 1,000 Points added to the budget.");
+        } else if (action === "2") {
+            gameState.energy = 10;
+            alert("⚡ Energy fully restored.");
+        } else if (action === "3") {
+            if (confirm("Are you sure? This will delete ALL fighters and progress.")) {
+                localStorage.removeItem('theCageSave');
+                location.reload();
+                return;
+            }
+        }
+        
+        updateUI();
+        saveData();
+    } else {
+        alert("Access Denied: Incorrect Coach Code.");
+    }
+}
