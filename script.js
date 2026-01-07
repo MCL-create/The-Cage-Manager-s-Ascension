@@ -392,5 +392,5 @@ function openAdminConsole() {
         alert("Access Denied: Incorrect Coach Code.");
     }
 }
-};
+
 
