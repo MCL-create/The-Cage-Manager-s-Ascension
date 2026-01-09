@@ -3,18 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>THE CAGE - GYM MANAGER</title>
+    <title>THE CAGE - MMA MANAGER</title>
     <link rel="stylesheet" href="style.css">
-    <style>
-        #logo-container { width: 80px; height: 80px; border: 2px dashed #fbbf24; border-radius: 50%; margin: 0 auto 10px; cursor: pointer; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #0f172a; }
-        #gym-logo-img { width: 100%; height: 100%; object-fit: cover; }
-        .clash-ready { background: #fbbf24 !important; color: #000 !important; font-weight: bold; animation: pulse 2s infinite; }
-        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.02); box-shadow: 0 0 20px #fbbf24; } 100% { transform: scale(1); } }
-        
-        /* XP Bar Styling */
-        .xp-container { width: 150px; height: 12px; background: #1e293b; border-radius: 6px; display: inline-block; vertical-align: middle; margin-left: 10px; border: 1px solid #334155; position: relative; overflow: hidden; }
-        #xp-bar-fill { height: 100%; background: linear-gradient(90deg, #fbbf24, #f59e0b); width: 0%; transition: width 0.5s; }
-    </style>
 </head>
 <body>
     <audio id="clash-chime" src="https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3" preload="auto"></audio>
@@ -25,10 +15,11 @@
             <span>💰 <b id="points-val">1300</b></span>
             <span>📅 Wk: <b id="week-val">1</b></span>
             <span id="trophy-count" style="color: #fbbf24; margin-left:10px;"></span>
+            
             <div class="xp-container">
                 <div id="xp-bar-fill"></div>
             </div>
-            <small style="font-size: 0.6rem; color: #94a3b8; margin-left: 5px;">LVL <span id="gym-level-val">1</span></small>
+            <small style="font-size: 0.7rem; color: #fbbf24; margin-left: 5px;">LVL <span id="gym-level-val">1</span></small>
         </div>
     </header>
 
@@ -40,7 +31,7 @@
             <button onclick="showView('create')">➕ Create</button>
             <button onclick="showView('shop')">🏗️ Shop</button>
             <button onclick="showView('help')">❓ Help</button>
-            <button onclick="saveData()" style="color: #10b981; margin-top: auto;">💾 Save</button>
+            <button onclick="saveData()" style="color: #10b981; margin-top: auto; border: 1px solid #10b981;">💾 Save</button>
         </aside>
 
         <main id="main-content">
@@ -48,38 +39,55 @@
                 <div class="action-card" style="text-align: center;">
                     <div id="logo-container" onclick="document.getElementById('gym-pic-upload').click()">
                         <img id="gym-logo-img" src="" style="display: none;">
-                        <span id="pic-placeholder" style="font-size: 0.6rem; color: #94a3b8;">LOGO</span>
+                        <span id="pic-placeholder">UPLOAD LOGO</span>
                     </div>
-                    <input type="file" id="gym-pic-upload" style="display: none;" onchange="handleLogoUpload(this)">
+                    <input type="file" id="gym-pic-upload" style="display: none;" accept="image/*" onchange="handleLogoUpload(this)">
+                    
                     <h2 id="gym-name-display">The Cage Gym</h2>
-                    <div id="news-feed" style="background: #0f172a; padding: 10px; border-radius: 8px; margin-bottom: 15px; min-height: 50px; font-size: 0.8rem; text-align: left;">Welcome to the Gym Manager.</div>
-                    <button id="advance-btn" onclick="processWeekReset()" style="height: 60px; font-size: 1.1rem; width: 100%; background: #ef4444; color: white; border-radius: 8px;">ADVANCE WEEK</button>
+                    <div id="news-feed" class="news-box">Ready for the season.</div>
+                    
+                    <button id="advance-btn" class="big-btn" onclick="processWeekReset()">ADVANCE WEEK</button>
                 </div>
             </section>
 
+            <section id="view-stable" class="view" style="display:none;">
+                <h2 style="color: #fbbf24;">YOUR STABLE</h2>
+                <div id="stable-list" class="grid-container"></div>
+            </section>
+
+            <section id="view-market" class="view" style="display:none;">
+                <h2 style="color: #fbbf24;">FIGHTER MARKET</h2>
+                <p style="font-size: 0.8rem; margin-bottom: 15px;">15 Professional fighters available this week.</p>
+                <div id="market-list" class="grid-container"></div>
+            </section>
+
             <section id="view-shop" class="view" style="display:none;">
-                <h2 style="color: #fbbf24;">GYM SHOP</h2>
+                <h2 style="color: #fbbf24;">GYM UPGRADES</h2>
                 <div id="shop-list" class="grid-container"></div>
             </section>
 
-            <section id="view-stable" class="view" style="display:none;"><div id="stable-list" class="grid-container"></div></section>
-            
             <section id="view-create" class="view" style="display:none;">
                 <div class="action-card">
-                    <h3>Sign Fighter (💰500)</h3>
-                    <input type="text" id="new-fighter-name" placeholder="Name..." style="padding: 12px; width: 100%; box-sizing: border-box; margin-bottom: 10px;">
-                    <button onclick="createFighter()">RECRUIT</button>
+                    <h3>Workshop Recruit (💰500)</h3>
+                    <input type="text" id="new-fighter-name" placeholder="Enter Name..." class="styled-input">
+                    <button onclick="createFighter()" class="buy-btn">SIGN CONTRACT</button>
                 </div>
             </section>
 
             <section id="view-tournament" class="view" style="display:none;">
                 <div id="tourney-status"></div>
-                <button id="start-clash-btn" onclick="runGymClash()" style="display:none; background: #10b981 !important; height: 50px; width: 100%;">START CLASH</button>
+                <button id="start-clash-btn" class="big-btn" onclick="runGymClash()" style="display:none; background: #10b981 !important;">START CLASH</button>
                 <div id="tourney-roster" class="grid-container"></div>
             </section>
 
             <section id="view-help" class="view" style="display:none;">
-                <div class="action-card"><h3>Manager's Manual</h3><p>Win Clashes to gain XP and unlock Shop items.</p><button onclick="forceHeal()" style="background: #3b82f6 !important;">FORCE RECOVERY</button></div>
+                <div class="action-card">
+                    <h3>Manager's Manual</h3>
+                    <p>• Weeks 1-23: Earn 💰 in the Stable.</p>
+                    <p>• Week 24: Mid-Season <b>Gym Clash</b>.</p>
+                    <p>• Week 48: Season Finale <b>Elite Clash</b>.</p>
+                    <button onclick="forceHeal()" style="background: #3b82f6 !important; margin-top: 15px;">FIX STUCK BUTTONS</button>
+                </div>
             </section>
         </main>
     </div>
