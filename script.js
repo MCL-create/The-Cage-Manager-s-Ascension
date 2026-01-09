@@ -141,16 +141,58 @@ function runGymClash() {
 }
 
 // --- MANAGEMENT ---
-
+// Updated Sell Function to record legacy
 function sellFighter(index) {
     const f = gameState.stable[index];
     let val = Math.max(200, Math.floor(((f.striking + f.grappling) * 8) + (f.wins * 50) - (f.age > 30 ? (f.age-30)*100 : 0)));
+    
     if (confirm(`Sell ${f.name} to Bank for 💰${val}?`)) {
+        // Record the fighter in Match History / Hall of Fame
+        const legacyEntry = {
+            name: f.name,
+            emoji: f.emoji,
+            record: `${f.wins}-${f.losses}`,
+            finalStats: `S:${f.striking} G:${f.grappling}`,
+            salePrice: val,
+            weekSold: gameState.week
+        };
+        
+        if (!gameState.matches) gameState.matches = []; 
+        gameState.matches.unshift(legacyEntry); // Add to the top of the history list
+        
         gameState.points += val;
         gameState.stable.splice(index, 1);
-        updateUI(); renderStable(); saveData();
+        
+        updateUI();
+        renderStable();
+        saveData();
+        alert(`${f.name} has joined the Hall of Fame.`);
     }
 }
+
+// Function to display the Hall of Fame
+function renderHistory() {
+    const list = document.getElementById('history-list');
+    if (!gameState.matches || gameState.matches.length === 0) {
+        list.innerHTML = `<p class="text-muted">No legends yet. Sell your first fighter to begin your legacy.</p>`;
+        return;
+    }
+
+    list.innerHTML = gameState.matches.map(h => `
+        <div class="action-card" style="border-left: 4px solid #f59e0b; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <span style="font-size: 1.5rem;">${h.emoji}</span>
+                <strong style="color: #f59e0b;">${h.name}</strong>
+                <p style="font-size: 0.7rem; margin: 0; color: #94a3b8;">Record: ${h.record} | ${h.finalStats}</p>
+            </div>
+            <div style="text-align: right;">
+                <p style="margin: 0; font-weight: bold;">💰${h.salePrice}</p>
+                <p style="font-size: 0.6rem; color: #64748b;">Week ${h.weekSold}</p>
+            </div>
+        </div>
+    `).join('');
+}
+
 
 function createFighter() {
     if (gameState.points < 500 || gameState.stable.filter(f => f.isCreated).length >= 8) return alert("Limit reached or no funds.");
@@ -199,6 +241,7 @@ function showView(v) {
     if (v === 'stable') renderStable();
     if (v === 'market') renderMarket();
     if (v === 'shop') renderShop();
+    if (v === 'history') renderHistory(); // Add this line
 }
 
 function generateMarketFighters() {
@@ -252,3 +295,4 @@ window.onload = () => {
 };
 function updateGymName(n) { gameState.gymName = n; saveData(); }
 function openAdminConsole() { if (prompt("Code:") === "1234") { gameState.points += 5000; updateUI(); } }
+
