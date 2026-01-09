@@ -15,15 +15,15 @@ const traits = [
 ];
 
 const rivalGyms = [
-    { name: "Iron Grip Dojo", coach: "Coach Stone", insult: "Yoga class is over." },
-    { name: "Apex MMA", coach: "Manager Viper", insult: "I only fight the best." },
-    { name: "Neon Strike", coach: "Sifu Rez", insult: "Data says you'll lose." }
+    { name: "Iron Grip Dojo", coach: "Coach Stone", insult: "Time for a lesson." },
+    { name: "Apex MMA", coach: "Manager Viper", insult: "My roster is superior." },
+    { name: "Neon Strike", coach: "Sifu Rez", insult: "Probability of your win: 0%." }
 ];
 
 let tourneySelection = [];
 let currentDiff = { label: "Amateur", mult: 1, bonus: 0 };
 
-// --- CORE ENGINE ---
+// --- CORE SYSTEM ---
 
 function processWeekReset() {
     if (gameState.week % 12 === 0 && gameState.week !== 0) {
@@ -53,13 +53,11 @@ function processWeekReset() {
     saveData();
 }
 
-// --- LOGO UPLOAD ---
-
 function handleLogoUpload(input) {
     const file = input.files[0];
     if (file) {
         const reader = new FileReader();
-        reader.onload = function(e) {
+        reader.onload = (e) => {
             gameState.gymLogo = e.target.result;
             displayLogo(gameState.gymLogo);
             saveData();
@@ -102,21 +100,6 @@ function prepareTournament() {
     renderTourneyRoster();
 }
 
-function toggleTourneyFighter(idx) {
-    const f = gameState.stable[idx];
-    if (tourneySelection.includes(idx)) {
-        tourneySelection = tourneySelection.filter(id => id !== idx);
-    } else {
-        const createdCount = tourneySelection.filter(id => gameState.stable[id].isCreated).length;
-        const boughtCount = tourneySelection.filter(id => !gameState.stable[id].isCreated).length;
-        if (f.isCreated && createdCount < 3) tourneySelection.push(idx);
-        else if (!f.isCreated && boughtCount < 3) tourneySelection.push(idx);
-        else return alert("Slot Limit: 3 Created / 3 Purchased");
-    }
-    document.getElementById('start-clash-btn').style.display = tourneySelection.length === 6 ? 'block' : 'none';
-    renderTourneyRoster();
-}
-
 function runGymClash() {
     let wins = 0;
     let totalCredits = currentDiff.bonus;
@@ -127,7 +110,7 @@ function runGymClash() {
         let playerPower = (f.striking + f.grappling) / 2;
         if (f.trait && f.trait.effect === "win_boost") playerPower += 12;
 
-        if (playerPower > (rivalPower + Math.random()*20)) {
+        if (playerPower > (rivalPower + (Math.random()*20))) {
             wins++;
             let boutReward = 250 * currentDiff.mult;
             if (playerPower < rivalPower) boutReward += 200; // Underdog Bonus
@@ -140,20 +123,18 @@ function runGymClash() {
 
     const gymWin = wins >= 4;
     if (gymWin) totalCredits += 1000 * currentDiff.mult;
-
-    alert(`${gymWin ? '🏆 GYM WIN' : '❌ GYM LOSS'}! Earned: 💰${Math.floor(totalCredits)}`);
+    alert(`${gymWin ? '🏆 VICTORY' : '❌ DEFEAT'}! Earned: 💰${Math.floor(totalCredits)}`);
     gameState.points += Math.floor(totalCredits);
     gameState.gymXP += gymWin ? (600 * currentDiff.mult) : 150;
-    
     gameState.week++; 
     checkLevelUp(); showView('dashboard'); updateUI(); saveData();
 }
 
-// --- FIGHTER MANAGEMENT ---
+// --- MANAGEMENT ---
 
 function createFighter() {
     if (gameState.stable.filter(f => f.isCreated).length >= 8) return alert("Workshop full!");
-    if (gameState.points < 500) return alert("Need 500.");
+    if (gameState.points < 500) return alert("Need 💰500.");
     
     let trait = Math.random() < 0.2 ? traits[Math.floor(Math.random() * traits.length)] : null;
     let sBonus = (gameState.specialization === 'Striking') ? 10 : 0;
@@ -167,7 +148,6 @@ function createFighter() {
         wins: 0, losses: 0, status: "Healthy", recoveryWeeks: 0, 
         trait: trait, division: divisions[Math.floor(Math.random()*3)]
     });
-    
     gameState.points -= 500;
     updateUI(); showView('stable'); saveData();
 }
@@ -199,7 +179,7 @@ function sellFighter(idx) {
 
 function retireToCoach(idx) {
     const f = gameState.stable[idx];
-    if (confirm(`Retire ${f.name} as Coach? (+2 permanent recruit stats)`)) {
+    if (confirm(`Retire ${f.name} as Coach? (+2 stats to future recruits)`)) {
         gameState.coachingBonus += 2;
         gameState.matches.unshift({ name: f.name, emoji: "🎓", record: `${f.wins}-${f.losses}`, price: "COACH", week: gameState.week });
         gameState.stable.splice(idx, 1);
@@ -212,7 +192,7 @@ function retireToCoach(idx) {
 function generateMarketFighters() {
     gameState.marketFighters = [];
     for (let i = 0; i < 3; i++) {
-        let t = Math.random() < (gameState.gymLevel > 10 ? 0.3 : 0.15) ? traits[Math.floor(Math.random() * traits.length)] : null;
+        let t = Math.random() < (gameState.gymLevel > 8 ? 0.3 : 0.15) ? traits[Math.floor(Math.random() * traits.length)] : null;
         let base = 50 + (gameState.gymLevel * 2);
         gameState.marketFighters.push({ 
             name: "Pro " + (i+1), emoji: t ? "🌟" : "🥋", age: 24+i, striking: base, grappling: base, 
@@ -224,7 +204,7 @@ function generateMarketFighters() {
 function buyFighter(idx) {
     const f = gameState.marketFighters[idx];
     if (gameState.stable.filter(x => !x.isCreated).length >= 7) return alert("Contract stable full!");
-    if (gameState.points < f.cost) return alert("Not enough points!");
+    if (gameState.points < f.cost) return alert("Need more 💰!");
     gameState.stable.push({ ...f, isCreated: false, wins: 0, losses: 0, status: "Healthy", recoveryWeeks: 0 });
     gameState.points -= f.cost;
     gameState.marketFighters.splice(idx, 1);
@@ -262,7 +242,7 @@ function renderStable() {
             <p class="weight-tag">⚖️ ${f.division}</p>
             ${f.trait ? `<p class="trait-tag">✨ ${f.trait.name}</p>` : ''}
             <p style="font-size:0.7rem;">S: ${f.striking} | G: ${f.grappling}</p>
-            <button onclick="simulateFight(${i})" ${f.status !== 'Healthy' ? 'disabled' : ''}>FIGHT</button>
+            <button onclick="simulateFight(${i})" ${f.status !== 'Healthy' ? 'disabled' : ''}>TRAIN</button>
             <div style="display:flex; gap:4px; margin-top:4px;">
                 <button onclick="sellFighter(${i})" style="flex:1; background:none; border:1px solid #f59e0b; color:#f59e0b; font-size:0.6rem;">SELL</button>
                 ${f.age >= 35 ? `<button onclick="retireToCoach(${i})" style="flex:1; background:#8b5cf6; color:white; font-size:0.6rem;">RETIRE</button>` : ''}
@@ -281,6 +261,21 @@ function renderTourneyRoster() {
             <button onclick="toggleTourneyFighter(${i})" ${disabled ? 'disabled' : ''}>${selected ? 'REMOVE' : 'SELECT'}</button>
         </div>`;
     }).join('');
+}
+
+function toggleTourneyFighter(idx) {
+    const f = gameState.stable[idx];
+    if (tourneySelection.includes(idx)) {
+        tourneySelection = tourneySelection.filter(id => id !== idx);
+    } else {
+        const cCount = tourneySelection.filter(id => gameState.stable[id].isCreated).length;
+        const bCount = tourneySelection.filter(id => !gameState.stable[id].isCreated).length;
+        if (f.isCreated && cCount < 3) tourneySelection.push(idx);
+        else if (!f.isCreated && bCount < 3) tourneySelection.push(idx);
+        else return alert("Slot Limit: 3 Created / 3 Purchased");
+    }
+    document.getElementById('start-clash-btn').style.display = tourneySelection.length === 6 ? 'block' : 'none';
+    renderTourneyRoster();
 }
 
 function renderMarket() {
