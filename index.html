@@ -42,10 +42,8 @@
                         <span id="pic-placeholder">UPLOAD LOGO</span>
                     </div>
                     <input type="file" id="gym-pic-upload" style="display: none;" accept="image/*" onchange="handleLogoUpload(this)">
-                    
                     <h2 id="gym-name-display">The Cage Gym</h2>
-                    <div id="news-feed" class="news-box">Ready for the season.</div>
-                    
+                    <div id="news-feed" class="news-box">Welcome, Coach.</div>
                     <button id="advance-btn" class="big-btn" onclick="processWeekReset()">ADVANCE WEEK</button>
                 </div>
             </section>
@@ -57,7 +55,6 @@
 
             <section id="view-market" class="view" style="display:none;">
                 <h2 style="color: #fbbf24;">FIGHTER MARKET</h2>
-                <p style="font-size: 0.8rem; margin-bottom: 15px;">15 Professional fighters available this week.</p>
                 <div id="market-list" class="grid-container"></div>
             </section>
 
@@ -69,7 +66,7 @@
             <section id="view-create" class="view" style="display:none;">
                 <div class="action-card">
                     <h3>Workshop Recruit (💰500)</h3>
-                    <input type="text" id="new-fighter-name" placeholder="Enter Name..." class="styled-input">
+                    <input type="text" id="new-fighter-name" placeholder="Fighter Name..." class="styled-input">
                     <button onclick="createFighter()" class="buy-btn">SIGN CONTRACT</button>
                 </div>
             </section>
@@ -83,9 +80,8 @@
             <section id="view-help" class="view" style="display:none;">
                 <div class="action-card">
                     <h3>Manager's Manual</h3>
-                    <p>• Weeks 1-23: Earn 💰 in the Stable.</p>
-                    <p>• Week 24: Mid-Season <b>Gym Clash</b>.</p>
-                    <p>• Week 48: Season Finale <b>Elite Clash</b>.</p>
+                    <p>• <b>Retire:</b> Remove fighters to free up space.</p>
+                    <p>• <b>Market:</b> 15 new fighters arrive every week.</p>
                     <button onclick="forceHeal()" style="background: #3b82f6 !important; margin-top: 15px;">FIX STUCK BUTTONS</button>
                 </div>
             </section>
