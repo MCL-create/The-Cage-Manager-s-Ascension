@@ -17,10 +17,11 @@
         <div style="margin-top: 10px; background: #334155; border-radius: 10px; height: 10px; width: 100%; overflow: hidden; border: 1px solid #475569;">
             <div id="xp-bar" style="background: #f59e0b; width: 0%; height: 100%; transition: width 0.5s;"></div>
         </div>
-        <div style="display: flex; justify-content: center; gap: 15px; font-size: 0.7rem; margin-top: 5px; color: #94a3b8;">
+        <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; font-size: 0.65rem; margin-top: 5px; color: #94a3b8;">
             <span>Lvl <span id="gym-level-val">1</span></span>
             <span>Created: <b id="created-count">0</b>/8</span>
-            <span>Purchased: <b id="purchased-count">0</b>/7</span>
+            <span>Bought: <b id="purchased-count">0</b>/7</span>
+            <span style="color: #f59e0b;">Coach Bonus: <b id="coach-bonus-val">+0</b></span>
         </div>
     </header>
 
@@ -40,7 +41,7 @@
             <section id="view-dashboard" class="view">
                 <div class="action-card" style="text-align: center; border: 2px solid #f59e0b;">
                     <h2 id="gym-name-display" contenteditable="true" onblur="updateGymName(this.innerText)">The Cage Gym</h2>
-                    <p id="news-feed" style="color: #94a3b8;">Gym Operational. Advance week to refresh market & energy.</p>
+                    <p id="news-feed" style="color: #94a3b8;">Welcome, Manager.</p>
                     <button class="btn-primary" onclick="processWeekReset()" style="width: 100%; height: 50px; font-size: 1.1rem; margin-top: 10px;">ADVANCE WEEK</button>
                 </div>
             </section>
@@ -49,8 +50,8 @@
                 <h1 style="color: #f59e0b;">🏆 GYM CLASH: WEEK <span id="tourney-week"></span></h1>
                 <div id="tourney-status" style="margin-bottom: 20px;"></div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
-                    <div class="action-card"><h4>Your Selected Squad</h4><div id="selected-squad-list"></div></div>
-                    <div class="action-card"><h4>Opponent Gym</h4><div id="opponent-squad-list"></div></div>
+                    <div class="action-card"><h4>Squad (3 Created / 3 Bought)</h4><div id="selected-squad-list"></div></div>
+                    <div class="action-card"><h4>Opponent</h4><div id="opponent-squad-list"></div></div>
                 </div>
                 <button id="start-clash-btn" class="btn-primary" style="width: 100%; display: none; height: 50px;" onclick="runGymClash()">START CLASH</button>
                 <div id="tourney-roster" class="grid-container"></div>
@@ -63,6 +64,7 @@
                 <div class="action-card">
                     <h3>Fighter Workshop</h3>
                     <input type="text" id="new-fighter-name" placeholder="Fighter Name..." class="custom-input">
+                    <p style="font-size: 0.7rem; color: #94a3b8;">Recruits benefit from your retired Coaches.</p>
                     <button class="btn-primary" onclick="createFighter()" style="width: 100%; margin-top: 10px;">Sign (💰500)</button>
                 </div>
             </section>
