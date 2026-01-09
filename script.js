@@ -4,7 +4,7 @@ let gameState = {
     gymLogo: null, gymLevel: 1, gymXP: 0
 };
 
-// --- IMAGE HANDLING ---
+// --- LOGO ---
 function handleLogoUpload(input) {
     const file = input.files[0];
     if (file) {
@@ -13,7 +13,6 @@ function handleLogoUpload(input) {
         reader.readAsDataURL(file);
     }
 }
-
 function renderLogo() {
     const img = document.getElementById('gym-logo-img');
     const placeholder = document.getElementById('pic-placeholder');
@@ -23,20 +22,19 @@ function renderLogo() {
     }
 }
 
-// --- MARKET GENERATOR (15 FIGHTERS) ---
+// --- MARKET (15 SLOTS) ---
 function generateMarket() {
     const fNames = ["Jax", "Leon", "Remy", "Viktor", "Sloane", "Kenta", "Zane", "Bo", "Dante", "Mika"];
     const lNames = ["Stone", "Viper", "Rage", "Steel", "Cobra", "Rush", "Grit", "Hammer", "Silva"];
     const emojis = ["🥋", "🥊", "🤼", "🥇", "🤜"];
-    
     gameState.marketFighters = Array.from({ length: 15 }, () => {
-        const strike = 35 + Math.floor(Math.random() * 25) + (gameState.gymLevel * 2);
-        const grapple = 35 + Math.floor(Math.random() * 25) + (gameState.gymLevel * 2);
+        const str = 35 + Math.floor(Math.random() * 25) + (gameState.gymLevel * 2);
+        const grp = 35 + Math.floor(Math.random() * 25) + (gameState.gymLevel * 2);
         return {
-            name: `${fNames[Math.floor(Math.random() * fNames.length)]} ${lNames[Math.floor(Math.random() * lNames.length)]}`,
-            emoji: emojis[Math.floor(Math.random() * emojis.length)],
-            striking: strike, grappling: grapple,
-            cost: 500 + (strike * 8) + (grapple * 8),
+            name: `${fNames[Math.floor(Math.random()*10)]} ${lNames[Math.floor(Math.random()*9)]}`,
+            emoji: emojis[Math.floor(Math.random()*5)],
+            striking: str, grappling: grp,
+            cost: 500 + (str * 9) + (grp * 9),
             status: "Healthy", recoveryWeeks: 0, wins: 0, losses: 0
         };
     });
@@ -64,17 +62,37 @@ function buyFighter(idx) {
     }
 }
 
-// --- GAME CORE ---
+// --- STABLE & RETIRING ---
+function renderStable() {
+    const list = document.getElementById('stable-list');
+    if (gameState.stable.length === 0) { list.innerHTML = "<p>Stable is empty.</p>"; return; }
+    list.innerHTML = gameState.stable.map((f, i) => `
+        <div class="action-card">
+            <h3>🥊 ${f.name}</h3>
+            <p>Record: ${f.wins}-${f.losses}</p>
+            <p>Status: <b style="color:${f.status==='Healthy'?'#10b981':'#ef4444'}">${f.status}</b></p>
+            <div style="display:flex; gap:10px;">
+                <button onclick="simulateFight(${i})" ${f.status !== 'Healthy' ? 'disabled' : ''}>FIGHT</button>
+                <button class="retire-btn" onclick="retireFighter(${i})">RETIRE</button>
+            </div>
+        </div>`).join('');
+}
+
+function retireFighter(idx) {
+    if (confirm(`Retire ${gameState.stable[idx].name}? This cannot be undone.`)) {
+        gameState.stable.splice(idx, 1);
+        renderStable();
+        saveData();
+    }
+}
+
+// --- CORE LOOP ---
 function processWeekReset() {
     if (gameState.week === 24) return triggerClash("GYM");
     if (gameState.week === 48) return triggerClash("ELITE");
-
-    gameState.week++;
-    gameState.energy = 15;
-    generateMarket(); // Refresh talent
-    gameState.stable.forEach(f => {
-        if (f.recoveryWeeks > 0) { f.recoveryWeeks--; if (f.recoveryWeeks === 0) f.status = "Healthy"; }
-    });
+    gameState.week++; gameState.energy = 15;
+    generateMarket();
+    gameState.stable.forEach(f => { if (f.recoveryWeeks > 0) { f.recoveryWeeks--; if (f.recoveryWeeks === 0) f.status = "Healthy"; } });
     updateUI(); saveData();
 }
 
@@ -83,26 +101,16 @@ function updateUI() {
     document.getElementById('energy-val').innerText = gameState.energy + "/15";
     document.getElementById('week-val').innerText = gameState.week;
     document.getElementById('gym-level-val').innerText = gameState.gymLevel;
-
-    // XP Bar
     const xpNeeded = gameState.gymLevel * 1000;
     document.getElementById('xp-bar-fill').style.width = (gameState.gymXP / xpNeeded * 100) + "%";
-
-    // Clash Button
     const advBtn = document.getElementById('advance-btn');
     if (gameState.week === 24 || gameState.week === 48) {
-        if (!advBtn.classList.contains('clash-ready')) {
-            advBtn.classList.add('clash-ready');
-            advBtn.innerText = "ENTER CLASH!";
-            document.getElementById('clash-chime').play().catch(()=>{});
-        }
+        advBtn.classList.add('clash-ready'); advBtn.innerText = "ENTER CLASH!";
+        document.getElementById('clash-chime').play().catch(()=>{});
     } else {
-        advBtn.classList.remove('clash-ready');
-        advBtn.innerText = "ADVANCE WEEK";
+        advBtn.classList.remove('clash-ready'); advBtn.innerText = "ADVANCE WEEK";
     }
-
     if (gameState.trophies > 0) document.getElementById('trophy-count').innerText = "🏆x" + gameState.trophies;
-    
     const feed = document.getElementById('news-feed');
     if (gameState.matches.length > 0) {
         feed.innerHTML = gameState.matches.slice(0, 3).map(m => `<div>Wk ${m.week}: ${m.fighter} ${m.result}</div>`).join('');
@@ -121,9 +129,17 @@ function simulateFight(idx) {
     renderStable(); updateUI(); saveData();
 }
 
+// --- VIEWS ---
+function showView(v) {
+    document.querySelectorAll('.view').forEach(view => view.style.display = 'none');
+    document.getElementById('view-' + v).style.display = 'block';
+    if (v === 'stable') renderStable();
+    if (v === 'market') renderMarket();
+}
+
 function triggerClash(type) {
     window.currentClashType = type; showView('tournament');
-    document.getElementById('tourney-status').innerHTML = `<h2>${type} CLASH</h2><p>Select your roster:</p>`;
+    document.getElementById('tourney-status').innerHTML = `<h2>${type} CLASH</h2>`;
     tourneySelection = []; renderTourneyRoster();
 }
 
@@ -147,49 +163,22 @@ function runGymClash() {
     const type = window.currentClashType;
     let wins = 0;
     tourneySelection.forEach(idx => { if (Math.random() > 0.5) wins++; gameState.stable[idx].status = "Fatigued"; });
-
     if (wins > tourneySelection.length / 2) {
         let reward = type === "ELITE" ? 5000 : 1500;
         gameState.points += reward;
         gameState.gymXP += (type === "ELITE" ? 600 : 300);
         if (type === "ELITE") gameState.trophies++;
         if (gameState.gymXP >= (gameState.gymLevel * 1000)) { gameState.gymLevel++; gameState.gymXP = 0; }
-        alert("GYM VICTORY!");
+        alert("VICTORY!");
     } else { alert("DEFEAT!"); }
-    
     gameState.week = (type === "ELITE") ? 1 : gameState.week + 1;
     showView('dashboard'); updateUI(); saveData();
-}
-
-function showView(v) {
-    document.querySelectorAll('.view').forEach(view => view.style.display = 'none');
-    document.getElementById('view-' + v).style.display = 'block';
-    if (v === 'stable') renderStable();
-    if (v === 'market') renderMarket();
-    if (v === 'shop') renderShop();
-}
-
-function renderStable() {
-    const list = document.getElementById('stable-list');
-    list.innerHTML = gameState.stable.map((f, i) => `
-        <div class="action-card"><h3>🥊 ${f.name}</h3><p>Status: ${f.status}</p>
-        <button onclick="simulateFight(${i})" ${f.status !== 'Healthy' ? 'disabled' : ''}>FIGHT NOW</button></div>`).join('');
-}
-
-function renderShop() {
-    const list = document.getElementById('shop-list');
-    const items = [{ name: "Heavy Bag", cost: 1000, lvl: 1 }, { name: "Physio", cost: 5000, lvl: 3 }];
-    list.innerHTML = items.map(item => `
-        <div class="action-card" style="opacity:${gameState.gymLevel < item.lvl ? 0.5 : 1}">
-            <h3>${item.name}</h3><b>💰${item.cost}</b><br>
-            <button onclick="alert('Bought!')" ${gameState.gymLevel < item.lvl ? 'disabled' : ''}>BUY</button>
-        </div>`).join('');
 }
 
 function createFighter() {
     if (gameState.points < 500) return alert("Need 💰500");
     const name = document.getElementById('new-fighter-name').value || "Recruit";
-    gameState.stable.push({ name, striking: 45, grappling: 45, status: "Healthy", recoveryWeeks: 0 });
+    gameState.stable.push({ name, striking: 45, grappling: 45, status: "Healthy", recoveryWeeks: 0, wins: 0, losses: 0 });
     gameState.points -= 500; document.getElementById('new-fighter-name').value = "";
     showView('stable'); updateUI(); saveData();
 }
