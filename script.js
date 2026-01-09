@@ -1,24 +1,21 @@
 let gameState = {
     points: 1000, energy: 15, maxEnergy: 15, week: 1, 
     stable: [], marketFighters: [], matches: [],
-    upgrades: { medical: false, lab: false, marketing: false, energyHub: false },
-    gymXP: 0, gymLevel: 1, gymName: "The Cage Gym",
-    totalGymWins: 0
+    upgrades: { medical: false, lab: false, energyHub: false },
+    gymXP: 0, gymLevel: 1, gymName: "The Cage Gym"
 };
 
 let tourneySelection = [];
 const namePool = [{ n: "Viper", e: "🐍" }, { n: "Titan", e: "🦾" }, { n: "Ghost", e: "👻" }, { n: "Rex", e: "🦖" }, { n: "Shadow", e: "👤" }];
-const recruitEmojis = ["🥊", "🥋", "👺", "🥷", "🦾", "👊"];
 const rivalGyms = [
-    { name: "Iron Grip Dojo", coach: "Coach Stone", insult: "Yoga class is down the street, kid." },
-    { name: "Apex MMA", coach: "Manager Viper", insult: "I've sold better fighters than your whole roster." }
+    { name: "Iron Grip Dojo", coach: "Coach Stone", insult: "You're overmatched, rookie." },
+    { name: "Apex MMA", coach: "Manager Viper", insult: "Time to show you real talent." }
 ];
 
-// --- CORE LOOP ---
+// --- CORE ENGINE ---
 
 function processWeekReset() {
     if (gameState.week % 12 === 0 && gameState.week !== 0) {
-        alert("🚨 TOURNAMENT WEEK!");
         showView('tournament');
         prepareTournament();
         return;
@@ -28,8 +25,13 @@ function processWeekReset() {
     gameState.energy = gameState.upgrades.energyHub ? 25 : 15;
     gameState.maxEnergy = gameState.upgrades.energyHub ? 25 : 15;
 
-    // Aging & Recovery
     gameState.stable.forEach(f => {
+        // Recovery
+        if (f.recoveryWeeks > 0) {
+            f.recoveryWeeks--;
+            if (f.recoveryWeeks === 0) f.status = "Healthy";
+        }
+        // Yearly Aging
         if (gameState.week % 52 === 0) {
             f.age++;
             if (f.age >= 33) {
@@ -38,89 +40,69 @@ function processWeekReset() {
                 f.grappling = Math.max(10, f.grappling - decline);
             }
         }
-        if (f.recoveryWeeks > 0) {
-            f.recoveryWeeks--;
-            if (f.recoveryWeeks === 0) f.status = "Healthy";
-        }
     });
 
-    if (Math.random() < 0.2) triggerRandomEvent();
     generateMarketFighters();
     updateUI();
     saveData();
 }
 
-function triggerRandomEvent() {
-    const events = [
-        { msg: "👟 Sponsorship deal!", effect: () => gameState.points += 300 },
-        { msg: "🥤 Energy delivery!", effect: () => gameState.energy = Math.min(gameState.maxEnergy, gameState.energy + 5) }
-    ];
-    const e = events[Math.floor(Math.random() * events.length)];
-    e.effect();
-    alert(`EVENT: ${e.msg}`);
-}
+// --- MARKET BANK (Peak Value Logic) ---
 
-// --- FIGHT & TOURNAMENT ---
-
-function simulateFight(index) {
+function sellFighter(index) {
     const f = gameState.stable[index];
-    if (gameState.energy < 1 || f.status !== "Healthy") return alert("Cannot fight!");
+    let statVal = (f.striking + f.grappling) * 10;
+    let winVal = f.wins * 60;
     
-    gameState.energy -= 1;
-    const winChance = ((f.striking + f.grappling)/2) / (((f.striking + f.grappling)/2) + (35 + gameState.week * 1.2));
-    const isWin = Math.random() < winChance;
-    
-    if (isWin) { f.wins++; gameState.gymXP += 150; gameState.points += 200; }
-    else { f.losses++; gameState.gymXP += 50; gameState.points += 50; }
+    // Strategic Peak: Value multiplier based on age
+    let ageMult = 1.0;
+    if (f.age < 25) ageMult = 0.8;          // Too young, unproven
+    else if (f.age <= 29) ageMult = 1.3;    // PRIME VALUE
+    else ageMult = 1.0 - ((f.age - 29) * 0.15); // Value drops 15% every year after 29
 
-    applyStrain(f, false);
-    checkLevelUp();
-    updateUI(); renderStable(); saveData();
-    alert(isWin ? "Winner!" : "Defeat.");
-}
+    let finalVal = Math.max(200, Math.floor((statVal + winVal) * ageMult));
 
-function applyStrain(f, isTourney) {
-    const injuryChance = isTourney ? 0.3 : 0.15;
-    if (Math.random() < injuryChance) {
-        f.status = "Injured";
-        f.recoveryWeeks = isTourney ? 3 : 2;
-    } else {
-        f.status = "Fatigued";
-        f.recoveryWeeks = 1;
+    if (confirm(`Sell ${f.name} to Bank for 💰${finalVal}?\n(Current Market Status: ${f.age >= 30 ? 'Veteran - Dropping Value' : 'Prime - High Value'})`)) {
+        gameState.matches.unshift({ name: f.name, emoji: f.emoji, record: `${f.wins}-${f.losses}`, price: finalVal, week: gameState.week });
+        gameState.points += finalVal;
+        gameState.stable.splice(index, 1);
+        updateUI(); renderStable(); saveData();
     }
 }
+
+// --- TOURNAMENT (3 Created / 3 Bought) ---
 
 function prepareTournament() {
     tourneySelection = [];
     const rival = rivalGyms[Math.floor(Math.random() * rivalGyms.length)];
     document.getElementById('tourney-week').innerText = gameState.week;
-    document.getElementById('tourney-status').innerHTML = `<div class="action-card" style="border: 2px solid #ef4444;"><b>${rival.coach}:</b> "${rival.insult}"</div>`;
+    document.getElementById('tourney-status').innerHTML = `<div class="action-card" style="border: 2px solid #ef4444;"><strong>${rival.coach} (${rival.name}):</strong> "${rival.insult}"</div><p>Select 3 Created and 3 Purchased fighters.</p>`;
     renderTourneyRoster();
 }
 
 function renderTourneyRoster() {
     const list = document.getElementById('tourney-roster');
-    list.innerHTML = gameState.stable.filter(f => f.status === "Healthy").map((f, i) => {
-        const globalIndex = gameState.stable.indexOf(f);
-        const selected = tourneySelection.includes(globalIndex);
-        return `<div class="action-card" style="opacity:${selected?0.5:1}">
-            <b>${f.name}</b> (${f.isCreated?'Created':'Bought'})<br>
-            <button onclick="toggleTourneyFighter(${globalIndex})">${selected?'Remove':'Select'}</button>
+    list.innerHTML = gameState.stable.map((f, i) => {
+        const selected = tourneySelection.includes(i);
+        const disabled = f.status !== "Healthy" && !selected;
+        return `<div class="action-card" style="opacity:${disabled ? 0.4 : 1}; border-left: 4px solid ${f.isCreated ? '#3b82f6' : '#10b981'}">
+            <b>${f.name}</b> (${f.isCreated ? 'Created' : 'Bought'})<br>
+            Status: ${f.status}<br>
+            <button onclick="toggleTourneyFighter(${i})" ${disabled ? 'disabled' : ''}>${selected ? 'Remove' : 'Select'}</button>
         </div>`;
     }).join('');
 }
 
 function toggleTourneyFighter(idx) {
     const f = gameState.stable[idx];
-    const createdSelected = tourneySelection.filter(id => gameState.stable[id].isCreated).length;
-    const boughtSelected = tourneySelection.filter(id => !gameState.stable[id].isCreated).length;
-
     if (tourneySelection.includes(idx)) {
         tourneySelection = tourneySelection.filter(id => id !== idx);
     } else {
-        if (f.isCreated && createdSelected < 3) tourneySelection.push(idx);
-        else if (!f.isCreated && boughtSelected < 3) tourneySelection.push(idx);
-        else alert("Slot limit reached (Max 3 Created, 3 Bought)");
+        const createdCount = tourneySelection.filter(id => gameState.stable[id].isCreated).length;
+        const boughtCount = tourneySelection.filter(id => !gameState.stable[id].isCreated).length;
+        if (f.isCreated && createdCount < 3) tourneySelection.push(idx);
+        else if (!f.isCreated && boughtCount < 3) tourneySelection.push(idx);
+        else return alert("Slot limit reached for this fighter type!");
     }
     document.getElementById('start-clash-btn').style.display = tourneySelection.length === 6 ? 'block' : 'none';
     renderTourneyRoster();
@@ -130,94 +112,36 @@ function runGymClash() {
     let wins = 0;
     tourneySelection.forEach(idx => {
         const f = gameState.stable[idx];
-        if (((f.striking + f.grappling)/2) > (45 + gameState.gymLevel * 5)) wins++;
-        applyStrain(f, true);
+        const difficulty = 45 + (gameState.gymLevel * 5);
+        if (((f.striking + f.grappling) / 2) > (difficulty + Math.random() * 20)) wins++;
+        
+        // Fatigue/Injury after Clash
+        if (Math.random() < 0.25) { f.status = "Injured"; f.recoveryWeeks = 3; }
+        else { f.status = "Fatigued"; f.recoveryWeeks = 2; }
     });
-    const bonus = wins >= 4 ? 1000 : 200;
-    gameState.points += bonus; gameState.gymXP += bonus;
-    alert(wins >= 4 ? "Gym Victory!" : "Gym Defeat.");
-    gameState.week++; // Move to week 13
+
+    const isWin = wins >= 4;
+    alert(isWin ? `VICTORY! ${wins}-2. +💰1200` : `DEFEAT. ${wins}-4. +💰300`);
+    gameState.points += isWin ? 1200 : 300;
+    gameState.gymXP += isWin ? 1000 : 250;
+    
+    gameState.week++; // Advance to next week immediately
     showView('dashboard'); updateUI(); saveData();
 }
 
-// --- MANAGEMENT ---
-// Updated Sell Function to record legacy
-function sellFighter(index) {
-    const f = gameState.stable[index];
-    let val = Math.max(200, Math.floor(((f.striking + f.grappling) * 8) + (f.wins * 50) - (f.age > 30 ? (f.age-30)*100 : 0)));
-    
-    if (confirm(`Sell ${f.name} to Bank for 💰${val}?`)) {
-        // Record the fighter in Match History / Hall of Fame
-        const legacyEntry = {
-            name: f.name,
-            emoji: f.emoji,
-            record: `${f.wins}-${f.losses}`,
-            finalStats: `S:${f.striking} G:${f.grappling}`,
-            salePrice: val,
-            weekSold: gameState.week
-        };
-        
-        if (!gameState.matches) gameState.matches = []; 
-        gameState.matches.unshift(legacyEntry); // Add to the top of the history list
-        
-        gameState.points += val;
-        gameState.stable.splice(index, 1);
-        
-        updateUI();
-        renderStable();
-        saveData();
-        alert(`${f.name} has joined the Hall of Fame.`);
-    }
-}
-
-// Function to display the Hall of Fame
-function renderHistory() {
-    const list = document.getElementById('history-list');
-    if (!gameState.matches || gameState.matches.length === 0) {
-        list.innerHTML = `<p class="text-muted">No legends yet. Sell your first fighter to begin your legacy.</p>`;
-        return;
-    }
-
-    list.innerHTML = gameState.matches.map(h => `
-        <div class="action-card" style="border-left: 4px solid #f59e0b; display: flex; justify-content: space-between; align-items: center;">
-            <div>
-                <span style="font-size: 1.5rem;">${h.emoji}</span>
-                <strong style="color: #f59e0b;">${h.name}</strong>
-                <p style="font-size: 0.7rem; margin: 0; color: #94a3b8;">Record: ${h.record} | ${h.finalStats}</p>
-            </div>
-            <div style="text-align: right;">
-                <p style="margin: 0; font-weight: bold;">💰${h.salePrice}</p>
-                <p style="font-size: 0.6rem; color: #64748b;">Week ${h.weekSold}</p>
-            </div>
-        </div>
-    `).join('');
-}
-
-
-function createFighter() {
-    if (gameState.points < 500 || gameState.stable.filter(f => f.isCreated).length >= 8) return alert("Limit reached or no funds.");
-    gameState.stable.push({ name: document.getElementById('new-fighter-name').value || "Recruit", isCreated: true, emoji: recruitEmojis[Math.floor(Math.random()*6)], age: 19, striking: 45, grappling: 45, wins: 0, losses: 0, status: "Healthy", recoveryWeeks: 0 });
-    gameState.points -= 500;
-    updateUI(); showView('stable');
-}
-
-function buyFighter(idx) {
-    const f = gameState.marketFighters[idx];
-    if (gameState.points < f.cost || gameState.stable.filter(f => !f.isCreated).length >= 7) return alert("Limit reached or no funds.");
-    gameState.stable.push({ ...f, isCreated: false, wins: 0, losses: 0, status: "Healthy", recoveryWeeks: 0 });
-    gameState.points -= f.cost;
-    gameState.marketFighters.splice(idx, 1);
-    updateUI(); renderMarket();
-}
-
-// --- UTILS ---
+// --- UI & HELPERS ---
 
 function updateUI() {
     document.getElementById('points-val').innerText = gameState.points;
     document.getElementById('energy-val').innerText = `${gameState.energy}/${gameState.maxEnergy}`;
     document.getElementById('week-val').innerText = gameState.week;
-    document.getElementById('created-count').innerText = gameState.stable.filter(f => f.isCreated).length;
-    document.getElementById('purchased-count').innerText = gameState.stable.filter(f => !f.isCreated).length;
+    document.getElementById('gym-level-val').innerText = gameState.gymLevel;
+    
+    const created = gameState.stable.filter(f => f.isCreated).length;
+    const bought = gameState.stable.filter(f => !f.isCreated).length;
+    document.getElementById('created-count').innerText = created;
+    document.getElementById('purchased-count').innerText = bought;
+    
     const xpNeeded = gameState.gymLevel * 500;
     document.getElementById('xp-bar').style.width = (gameState.gymXP / xpNeeded) * 100 + "%";
 }
@@ -225,14 +149,52 @@ function updateUI() {
 function renderStable() {
     const list = document.getElementById('stable-list');
     list.innerHTML = gameState.stable.map((f, i) => `
-        <div class="action-card" style="opacity: ${f.status==='Healthy'?1:0.6}">
+        <div class="action-card" style="opacity: ${f.status === 'Healthy' ? 1 : 0.6}">
             <h3>${f.emoji} ${f.name}</h3>
-            <p>${f.status} | Age: ${f.age}</p>
+            <p>${f.status} | Age: ${f.age} | ${f.isCreated ? 'WORKSHOP' : 'CONTRACT'}</p>
             <p>S: ${f.striking} G: ${f.grappling}</p>
-            <button onclick="simulateFight(${i})" ${f.status!=='Healthy'?'disabled':''}>FIGHT</button>
-            <button onclick="sellFighter(${i})" style="border:1px solid #f59e0b; background:none; color:#f59e0b;">SELL</button>
+            <button onclick="simulateFight(${i})" ${f.status !== 'Healthy' ? 'disabled' : ''}>FIGHT (⚡1)</button>
+            <button onclick="sellFighter(${i})" style="background:none; border:1px solid #f59e0b; color:#f59e0b;">SELL</button>
         </div>
     `).join('');
+}
+
+function simulateFight(idx) {
+    const f = gameState.stable[idx];
+    if (gameState.energy < 1) return alert("No energy!");
+    gameState.energy--;
+    const win = Math.random() > 0.5; // Simple fight logic
+    f.wins += win ? 1 : 0;
+    f.losses += win ? 0 : 1;
+    f.status = "Fatigued"; f.recoveryWeeks = 1;
+    gameState.points += win ? 200 : 50;
+    gameState.gymXP += win ? 100 : 20;
+    alert(win ? "Won!" : "Lost.");
+    updateUI(); renderStable(); saveData();
+}
+
+function createFighter() {
+    if (gameState.stable.filter(f => f.isCreated).length >= 8) return alert("Workshop full!");
+    if (gameState.points < 500) return alert("Need 500.");
+    gameState.stable.push({ name: document.getElementById('new-fighter-name').value || "Recruit", isCreated: true, emoji: "🥊", age: 20, striking: 45, grappling: 45, wins: 0, losses: 0, status: "Healthy", recoveryWeeks: 0 });
+    gameState.points -= 500;
+    updateUI(); showView('stable');
+}
+
+function generateMarketFighters() {
+    gameState.marketFighters = [];
+    for (let i = 0; i < 3; i++) {
+        gameState.marketFighters.push({ name: namePool[i].n, emoji: namePool[i].e, age: 24+i, striking: 50+gameState.gymLevel*2, grappling: 50+gameState.gymLevel*2, cost: 700 });
+    }
+}
+
+function buyFighter(idx) {
+    const f = gameState.marketFighters[idx];
+    if (gameState.stable.filter(f => !f.isCreated).length >= 7) return alert("Contract stable full!");
+    gameState.stable.push({ ...f, isCreated: false, wins: 0, losses: 0, status: "Healthy", recoveryWeeks: 0 });
+    gameState.points -= f.cost;
+    gameState.marketFighters.splice(idx, 1);
+    updateUI(); renderMarket();
 }
 
 function showView(v) {
@@ -240,50 +202,30 @@ function showView(v) {
     document.getElementById('view-'+v).style.display = 'block';
     if (v === 'stable') renderStable();
     if (v === 'market') renderMarket();
+    if (v === 'history') renderHistory();
     if (v === 'shop') renderShop();
-    if (v === 'history') renderHistory(); // Add this line
-}
-
-function generateMarketFighters() {
-    gameState.marketFighters = [];
-    for (let i = 0; i < 3; i++) {
-        const c = namePool[Math.floor(Math.random()*5)];
-        gameState.marketFighters.push({ name: c.n, emoji: c.e, age: 22, striking: 50+gameState.gymLevel*2, grappling: 50+gameState.gymLevel*2, cost: 600+gameState.gymLevel*50 });
-    }
 }
 
 function renderMarket() {
     document.getElementById('market-list').innerHTML = gameState.marketFighters.map((f, i) => `
-        <div class="action-card">
-            <h3>${f.name}</h3>
-            <p>Cost: 💰${f.cost}</p>
-            <button onclick="buyFighter(${i})">SIGN</button>
-        </div>
-    `).join('');
+        <div class="action-card"><h3>${f.name}</h3><p>Cost: 💰${f.cost}</p><button onclick="buyFighter(${i})">SIGN</button></div>`).join('');
+}
+
+function renderHistory() {
+    document.getElementById('history-list').innerHTML = gameState.matches.map(h => `
+        <div class="action-card"><b>${h.name}</b> | Record: ${h.record} | Sold for 💰${h.price}</div>`).join('');
 }
 
 function renderShop() {
-    const items = [{id:'medical', name:'Medical Wing', cost:1500}, {id:'lab', name:'Lab', cost:2000}, {id:'energyHub', name:'Energy Hub', cost:1200}];
-    document.getElementById('shop-list').innerHTML = items.map(item => `
-        <div class="action-card">
-            <h3>${item.name}</h3>
-            <button onclick="buyUpgrade('${item.id}', ${item.cost})">${gameState.upgrades[item.id]?'OWNED':'BUY 💰'+item.cost}</button>
-        </div>
-    `).join('');
+    const items = [{id:'medical', n:'Medical Wing', c:1500}, {id:'energyHub', n:'Energy Hub', c:1200}];
+    document.getElementById('shop-list').innerHTML = items.map(it => `
+        <div class="action-card"><h3>${it.n}</h3><button onclick="buyUpgrade('${it.id}', ${it.c})">${gameState.upgrades[it.id]?'OWNED':'BUY 💰'+it.c}</button></div>`).join('');
 }
 
-function buyUpgrade(id, cost) {
-    if (gameState.points >= cost && !gameState.upgrades[id]) {
-        gameState.points -= cost; gameState.upgrades[id] = true;
-        updateUI(); renderShop(); saveData();
-    }
-}
-
-function checkLevelUp() {
-    const xpNeeded = gameState.gymLevel * 500;
-    if (gameState.gymXP >= xpNeeded) {
-        gameState.gymXP -= xpNeeded; gameState.gymLevel++; gameState.points += 500;
-        alert("GYM LEVEL UP!");
+function buyUpgrade(id, c) {
+    if (gameState.points >= c && !gameState.upgrades[id]) {
+        gameState.points -= c; gameState.upgrades[id] = true;
+        updateUI(); renderShop();
     }
 }
 
@@ -293,6 +235,4 @@ window.onload = () => {
     if (s) gameState = {...gameState, ...JSON.parse(s)};
     generateMarketFighters(); updateUI();
 };
-function updateGymName(n) { gameState.gymName = n; saveData(); }
 function openAdminConsole() { if (prompt("Code:") === "1234") { gameState.points += 5000; updateUI(); } }
-
