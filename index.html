@@ -7,12 +7,13 @@
     <link rel="stylesheet" href="style.css">
     <style>
         :root { --primary: #f59e0b; --bg: #0f172a; --card: #1e293b; --text: #f8fafc; }
-        .btn-diff { opacity: 0.6; flex: 1; font-size: 0.7rem; padding: 10px; cursor: pointer; border: 1px solid #475569; background: #334155; color: white; border-radius: 5px;}
+        .btn-diff { opacity: 0.6; flex: 1; font-size: 0.7rem; padding: 10px; cursor: pointer; border: 1px solid #475569; background: #334155; color: white; border-radius: 5px; transition: 0.2s;}
         .btn-diff.active { opacity: 1; border: 2px solid var(--primary); background: #451a03; }
-        .spec-card { border: 2px dashed #94a3b8; padding: 15px; margin-top: 10px; cursor: pointer; border-radius: 10px;}
+        .spec-card { border: 2px dashed #94a3b8; padding: 15px; margin-top: 10px; cursor: pointer; border-radius: 10px; transition: 0.3s;}
         .spec-card:hover { border-color: var(--primary); background: #0f172a; }
         .weight-tag { color: #60a5fa; font-size: 0.65rem; font-weight: bold; margin-bottom: 5px; }
         .trait-tag { color: var(--primary); font-size: 0.65rem; font-weight: bold; margin-top: 5px; }
+        .help-text p { margin-bottom: 15px; border-bottom: 1px solid #334155; padding-bottom: 10px; }
     </style>
 </head>
 <body>
@@ -41,6 +42,7 @@
             <button onclick="showView('market')">🛒 Market</button>
             <button onclick="showView('creator')">➕ Create</button>
             <button onclick="showView('history')">📜 Legacy</button>
+            <button onclick="showView('help')">❓ Help</button>
             <button class="exit-btn" onclick="saveData()" style="margin-top: auto; color: #10b981;">💾 Save</button>
         </aside>
 
@@ -50,17 +52,17 @@
                     <div onclick="document.getElementById('gym-pic-upload').click()" 
                          style="width: 80px; height: 80px; border-radius: 50%; border: 2px solid var(--primary); margin: 0 auto 10px; cursor: pointer; overflow: hidden; background: #0f172a; display: flex; align-items: center; justify-content: center;">
                         <img id="gym-logo-img" src="" style="width: 100%; height: 100%; object-fit: cover; display: none;">
-                        <span id="pic-placeholder" style="font-size: 0.5rem; color: #94a3b8;">LOGO</span>
+                        <span id="pic-placeholder" style="font-size: 0.5rem; color: #94a3b8;">UPLOAD LOGO</span>
                     </div>
                     <input type="file" id="gym-pic-upload" style="display: none;" accept="image/*" onchange="handleLogoUpload(this)">
                     
                     <h2 id="gym-name-display" contenteditable="true" onblur="updateGymName(this.innerText)">The Cage Gym</h2>
-                    <p id="news-feed" style="color: #94a3b8; font-size: 0.8rem;">Advance week to refresh energy & market.</p>
+                    <p id="news-feed" style="color: #94a3b8; font-size: 0.8rem;">Ready for training.</p>
                     <button class="btn-primary" onclick="processWeekReset()" style="width: 100%; height: 50px; font-size: 1.1rem; margin-top: 10px;">ADVANCE WEEK</button>
                 </div>
 
                 <div id="spec-picker" style="display:none; margin-top: 20px; text-align: center;">
-                    <h3 style="color: var(--primary);">LEVEL 5: CHOOSE SPECIALIZATION</h3>
+                    <h3 style="color: var(--primary);">SPECIALIZATION UNLOCKED</h3>
                     <div class="spec-card" onclick="setSpecialization('Striking')">
                         <h4>Striking Academy</h4>
                         <p style="font-size:0.7rem;">+10 Striking for all future recruits.</p>
@@ -90,6 +92,18 @@
                 </div>
             </section>
             <section id="view-history" class="view" style="display:none;"><div id="history-list" class="grid-container"></div></section>
+            
+            <section id="view-help" class="view" style="display:none;">
+                <div class="action-card help-text" style="text-align: left; border-left: 4px solid var(--primary);">
+                    <h2 style="color: var(--primary);">Manager's Handbook</h2>
+                    <p><strong>📅 Cycle:</strong> The game runs in 12-week cycles. Week 12 is always a <b>Gym Clash</b>. Advance the week to refresh Energy and the Market.</p>
+                    <p><strong>🥊 Training:</strong> Click "FIGHT" to train. This uses 1 Energy. Winning earns more Credits and Gym XP.</p>
+                    <p><strong>⚖️ Divisions:</strong> Fighters belong to Light, Mid, or Heavyweight. Diversify your roster to ensure you can fill all slots in a Clash.</p>
+                    <p><strong>🌟 Traits:</strong> Some recruits have <b>Special Traits</b> like "Iron Chin" (Injury Resistance) or "Fan Favorite" (Double Income).</p>
+                    <p><strong>📈 Aging:</strong> Value peaks at age 29. At age 30, stats and value begin to drop. Retire veterans at 35 to become <b>Coaches</b>.</p>
+                    <p><strong>🏆 Clashes:</strong> Select 3 Created and 3 Purchased fighters. Choose <b>Elite</b> difficulty for 2.5x rewards!</p>
+                </div>
+            </section>
         </main>
     </div>
     <script src="script.js"></script>
