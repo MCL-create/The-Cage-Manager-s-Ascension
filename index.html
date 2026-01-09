@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>THE CAGE - MMA MANAGER</title>
+    <title>THE CAGE - MMA MANAGER PRO</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -15,11 +15,8 @@
             <span>💰 <b id="points-val">1300</b></span>
             <span>📅 Wk: <b id="week-val">1</b></span>
             <span id="trophy-count" style="color: #fbbf24; margin-left:10px;"></span>
-            
-            <div class="xp-container">
-                <div id="xp-bar-fill"></div>
-            </div>
-            <small style="font-size: 0.7rem; color: #fbbf24; margin-left: 5px;">LVL <span id="gym-level-val">1</span></small>
+            <div class="xp-container"><div id="xp-bar-fill"></div></div>
+            <small style="color: #fbbf24; margin-left: 5px;">LVL <span id="gym-level-val">1</span></small>
         </div>
     </header>
 
@@ -28,6 +25,8 @@
             <button onclick="showView('dashboard')">🏠 Home</button>
             <button onclick="showView('stable')">🥋 Stable</button>
             <button onclick="showView('market')">🛒 Market</button>
+            <button onclick="showView('leaderboard')">📊 Rankings</button>
+            <button onclick="showView('stats')">📈 Gym Stats</button>
             <button onclick="showView('create')">➕ Create</button>
             <button onclick="showView('shop')">🏗️ Shop</button>
             <button onclick="showView('help')">❓ Help</button>
@@ -43,7 +42,17 @@
                     </div>
                     <input type="file" id="gym-pic-upload" style="display: none;" accept="image/*" onchange="handleLogoUpload(this)">
                     <h2 id="gym-name-display">The Cage Gym</h2>
-                    <div id="news-feed" class="news-box">Welcome, Coach.</div>
+                    
+                    <div id="sponsor-panel" style="background: #1e293b; border: 1px solid #fbbf24; padding: 10px; border-radius: 8px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 0.8rem; color: #94a3b8;">Weekly Sponsor:</span>
+                        <b id="sponsor-payout" style="color: #10b981;">💰0 / week</b>
+                    </div>
+
+                    <div id="rival-alert" onclick="triggerGrudgeMatch()" style="display:none; background: #ef4444; color: white; padding: 10px; border-radius: 8px; margin-bottom: 10px; font-weight: bold; cursor: pointer; animation: pulse 1s infinite;">
+                        🚨 RIVAL CHALLENGE: ACCEPT?
+                    </div>
+
+                    <div id="news-feed" class="news-box">Scanning for rivals...</div>
                     <button id="advance-btn" class="big-btn" onclick="processWeekReset()">ADVANCE WEEK</button>
                 </div>
             </section>
@@ -58,16 +67,67 @@
                 <div id="market-list" class="grid-container"></div>
             </section>
 
-            <section id="view-shop" class="view" style="display:none;">
-                <h2 style="color: #fbbf24;">GYM UPGRADES</h2>
-                <div id="shop-list" class="grid-container"></div>
+            <section id="view-leaderboard" class="view" style="display:none;">
+                <h2 style="color: #fbbf24;">SEASON RANKINGS</h2>
+                <div class="action-card">
+                    <table style="width: 100%; color: white; border-collapse: collapse;">
+                        <thead><tr style="border-bottom: 2px solid #334155; text-align: left;"><th style="padding: 10px;">Rank</th><th>Gym Name</th><th>Reputation</th></tr></thead>
+                        <tbody id="leaderboard-body"></tbody>
+                    </table>
+                </div>
             </section>
 
+            <section id="view-stats" class="view" style="display:none;">
+                <h2 style="color: #fbbf24;">GYM ANALYTICS</h2>
+                <div class="grid-container">
+                    <div class="action-card">
+                        <h3 style="color: #10b981;">Finance</h3>
+                        <p>Total: <b id="stat-total-money">💰0</b></p>
+                        <p>Sponsorship: <b id="stat-sponsor-total">💰0</b></p>
+                    </div>
+                    <div id="hof-card" class="action-card" style="border: 2px solid #fbbf24;">
+                        <h3 style="color: #fbbf24;">🏆 Hall of Fame</h3>
+                        <div id="hof-content">No legends yet.</div>
+                    </div>
+                </div>
+                <div class="action-card" style="margin-top: 20px;">
+                    <h3>Win/Loss Ratio: <span id="stat-wl-ratio">0%</span></h3>
+                    <div style="width: 100%; height: 20px; background: #0f172a; border-radius: 10px; display: flex; overflow: hidden;">
+                        <div id="win-bar" style="background: #10b981; width: 0%;"></div>
+                        <div id="loss-bar" style="background: #ef4444; width: 0%;"></div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="view-specialization" class="view" style="display:none;">
+                <div class="action-card" style="text-align: center;">
+                    <h2 style="color: #fbbf24;">CHOOSE YOUR LEGACY</h2>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                        <div class="action-card" style="border: 2px solid #ef4444; cursor: pointer;" onclick="selectSpecialization('Striker')">
+                            <h1>🥊</h1><h3>STRIKING ACADEMY</h3><p>+10 STR | +10% 💰 Wins</p>
+                        </div>
+                        <div class="action-card" style="border: 2px solid #3b82f6; cursor: pointer;" onclick="selectSpecialization('Grappler')">
+                            <h1>🤼</h1><h3>GRAPPLING SCHOOL</h3><p>+10 GRP | Higher Win %</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="view-grudge" class="view" style="display:none;">
+                <div class="action-card" style="text-align: center; border: 2px solid #fbbf24;">
+                    <h2 style="color: #ef4444;">GRUDGE MATCH</h2>
+                    <p id="grudge-desc"></p>
+                    <div id="grudge-selection" class="grid-container"></div>
+                </div>
+            </section>
+
+            <section id="view-shop" class="view" style="display:none;"><h2 style="color: #fbbf24;">SHOP</h2><div id="shop-list" class="grid-container"></div></section>
+            
             <section id="view-create" class="view" style="display:none;">
                 <div class="action-card">
-                    <h3>Workshop Recruit (💰500)</h3>
-                    <input type="text" id="new-fighter-name" placeholder="Fighter Name..." class="styled-input">
-                    <button onclick="createFighter()" class="buy-btn">SIGN CONTRACT</button>
+                    <h3>Sign Recruit (💰500)</h3>
+                    <input type="text" id="new-fighter-name" placeholder="Name..." class="styled-input">
+                    <button onclick="createFighter()">SIGN</button>
                 </div>
             </section>
 
@@ -78,12 +138,7 @@
             </section>
 
             <section id="view-help" class="view" style="display:none;">
-                <div class="action-card">
-                    <h3>Manager's Manual</h3>
-                    <p>• <b>Retire:</b> Remove fighters to free up space.</p>
-                    <p>• <b>Market:</b> 15 new fighters arrive every week.</p>
-                    <button onclick="forceHeal()" style="background: #3b82f6 !important; margin-top: 15px;">FIX STUCK BUTTONS</button>
-                </div>
+                <div class="action-card"><button onclick="forceHeal()">FORCE RESET ENERGY/HEALTH</button></div>
             </section>
         </main>
     </div>
