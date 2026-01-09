@@ -11,14 +11,14 @@ function handleLogoUpload(input) {
         const reader = new FileReader();
         reader.onload = function(e) {
             gameState.gymLogo = e.target.result;
-            updateLogoDisplay();
+            renderLogo();
             saveData();
         };
         reader.readAsDataURL(file);
     }
 }
 
-function updateLogoDisplay() {
+function renderLogo() {
     const img = document.getElementById('gym-logo-img');
     const placeholder = document.getElementById('pic-placeholder');
     if (gameState.gymLogo && img) {
@@ -51,7 +51,8 @@ function simulateFight(idx) {
 
 // --- CLASH & WEEK SYSTEM ---
 function processWeekReset() {
-    if (gameState.week === 24) return triggerClash("GYM");
+    // Current Week 12 Clash handling
+    if (gameState.week === 12 || gameState.week === 24) return triggerClash("GYM");
     if (gameState.week === 48) return triggerClash("ELITE");
 
     gameState.week++;
@@ -72,9 +73,7 @@ let tourneySelection = [];
 function triggerClash(type) {
     window.currentClashType = type;
     showView('tournament');
-    document.getElementById('tourney-status').innerHTML = `
-        <h2 style="color:#fbbf24">${type} CLASH</h2>
-        <p>Select fighters for the event. Majority wins takes the prize!</p>`;
+    document.getElementById('tourney-status').innerHTML = `<h2>${type} CLASH (Wk ${gameState.week})</h2><p>Select fighters to compete!</p>`;
     tourneySelection = [];
     renderTourneyRoster();
 }
@@ -86,7 +85,7 @@ function renderTourneyRoster() {
 
     list.innerHTML = gameState.stable.map((f, i) => `
         <div class="action-card">
-            <b>${f.name}</b>
+            <b>${f.name}</b><br>
             <button onclick="toggleTourneyFighter(${i})">${tourneySelection.includes(i) ? 'REMOVE' : 'SELECT'}</button>
         </div>
     `).join('');
@@ -106,7 +105,7 @@ function runGymClash() {
     let wins = 0;
     tourneySelection.forEach(idx => {
         const f = gameState.stable[idx];
-        if ((f.striking + f.grappling)/2 > (45 + Math.random() * 35)) wins++;
+        if ((f.striking + f.grappling)/2 > (45 + Math.random() * 30)) wins++;
         f.status = "Fatigued"; f.recoveryWeeks = 2;
     });
 
@@ -115,9 +114,9 @@ function runGymClash() {
         let reward = type === "ELITE" ? 5000 : 1500;
         gameState.points += reward;
         if (type === "ELITE") gameState.trophies++;
-        alert(`VICTORY! The gym earned 💰${reward}`);
+        alert(`VICTORY! Gym earned 💰${reward}`);
     } else {
-        alert("CLASH DEFEAT! Better luck next season.");
+        alert("DEFEAT!");
     }
 
     gameState.week = type === "ELITE" ? 1 : gameState.week + 1;
@@ -128,36 +127,37 @@ function runGymClash() {
 
 // --- UTILS ---
 function createFighter() {
-    const nameVal = document.getElementById('new-fighter-name').value;
+    const nameInput = document.getElementById('new-fighter-name');
     if (gameState.points < 500) return alert("Need 💰500");
     
     gameState.stable.push({
-        name: nameVal || "Recruit",
+        name: nameInput.value || "Recruit",
         striking: 45, grappling: 45, wins: 0, losses: 0,
         status: "Healthy", recoveryWeeks: 0, emoji: "🥊"
     });
     
     gameState.points -= 500;
-    document.getElementById('new-fighter-name').value = "";
+    nameInput.value = "";
     showView('stable');
     updateUI();
 }
 
 function showView(v) {
     document.querySelectorAll('.view').forEach(view => view.style.display = 'none');
-    document.getElementById('view-' + v).style.display = 'block';
+    const target = document.getElementById('view-' + v);
+    if (target) target.style.display = 'block';
     if (v === 'stable') renderStable();
 }
 
 function updateUI() {
     document.getElementById('points-val').innerText = gameState.points;
-    document.getElementById('energy-val').innerText = `${gameState.energy}/15`;
+    document.getElementById('energy-val').innerText = gameState.energy + "/15";
     document.getElementById('week-val').innerText = gameState.week;
     
     const feed = document.getElementById('news-feed');
     if (gameState.matches.length > 0) {
-        feed.innerHTML = gameState.matches.slice(0, 4).map(m => 
-            `<div class="log-entry">Wk ${m.week}: <b>${m.fighter}</b> - ${m.result} (+💰${m.earnings})</div>`
+        feed.innerHTML = gameState.matches.slice(0, 3).map(m => 
+            `<div>Wk ${m.week}: <b>${m.fighter}</b> ${m.result} (+💰${m.earnings})</div>`
         ).join('');
     }
 
@@ -168,8 +168,9 @@ function updateUI() {
 
 function renderStable() {
     const list = document.getElementById('stable-list');
+    if (!list) return;
     if (gameState.stable.length === 0) {
-        list.innerHTML = "<p>No fighters in stable.</p>";
+        list.innerHTML = "<p>Stable is empty. Recruit a fighter first!</p>";
         return;
     }
     list.innerHTML = gameState.stable.map((f, i) => `
@@ -177,7 +178,7 @@ function renderStable() {
             <h3>${f.emoji} ${f.name}</h3>
             <p>Rec: ${f.wins}-${f.losses}</p>
             <p>Status: <b style="color:${f.status === 'Healthy' ? '#10b981' : '#ef4444'}">${f.status}</b></p>
-            <button onclick="simulateFight(${i})" ${f.status !== 'Healthy' ? 'disabled' : ''}>FIGHT NOW</button>
+            <button onclick="simulateFight(${i})" ${f.status !== 'Healthy' ? 'disabled' : ''} style="background: #fbbf24 !important; color: black !important;">FIGHT NOW</button>
         </div>
     `).join('');
 }
@@ -188,7 +189,7 @@ window.onload = () => {
     const saved = localStorage.getItem('theCageSave');
     if (saved) {
         gameState = Object.assign(gameState, JSON.parse(saved));
-        updateLogoDisplay();
+        renderLogo();
     }
     updateUI();
 };
