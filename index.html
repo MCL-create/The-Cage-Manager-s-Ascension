@@ -33,7 +33,6 @@
             <button onclick="showView('market')">🛒 Market</button>
             <button onclick="showView('creator')">➕ Create</button>
             <button onclick="showView('history')">📜 Hall of Fame</button>
-            <button onclick="openAdminConsole()" style="margin-top: 20px; color: #f59e0b; border: 1px dashed #f59e0b; font-size: 0.6rem;">🛡️ Coach Login</button>
             <button class="exit-btn" onclick="saveData()" style="margin-top: auto; color: #10b981;">💾 Save</button>
         </aside>
 
@@ -41,7 +40,7 @@
             <section id="view-dashboard" class="view">
                 <div class="action-card" style="text-align: center; border: 2px solid #f59e0b;">
                     <h2 id="gym-name-display" contenteditable="true" onblur="updateGymName(this.innerText)">The Cage Gym</h2>
-                    <p id="news-feed" style="color: #94a3b8;">Welcome, Manager.</p>
+                    <p id="news-feed" style="color: #94a3b8;">Gym Operational. Plan your roster for the next Clash.</p>
                     <button class="btn-primary" onclick="processWeekReset()" style="width: 100%; height: 50px; font-size: 1.1rem; margin-top: 10px;">ADVANCE WEEK</button>
                 </div>
             </section>
@@ -50,8 +49,8 @@
                 <h1 style="color: #f59e0b;">🏆 GYM CLASH: WEEK <span id="tourney-week"></span></h1>
                 <div id="tourney-status" style="margin-bottom: 20px;"></div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
-                    <div class="action-card"><h4>Squad (3 Created / 3 Bought)</h4><div id="selected-squad-list"></div></div>
-                    <div class="action-card"><h4>Opponent</h4><div id="opponent-squad-list"></div></div>
+                    <div class="action-card"><h4>Your Selection</h4><div id="selected-squad-list"></div></div>
+                    <div class="action-card"><h4>Rival Gym</h4><div id="opponent-squad-list"></div></div>
                 </div>
                 <button id="start-clash-btn" class="btn-primary" style="width: 100%; display: none; height: 50px;" onclick="runGymClash()">START CLASH</button>
                 <div id="tourney-roster" class="grid-container"></div>
@@ -60,14 +59,20 @@
             <section id="view-stable" class="view" style="display:none;"><div id="stable-list" class="grid-container"></div></section>
             <section id="view-shop" class="view" style="display:none;"><div id="shop-list" class="grid-container"></div></section>
             <section id="view-market" class="view" style="display:none;"><div id="market-list" class="grid-container"></div></section>
+            
             <section id="view-creator" class="view" style="display:none;">
                 <div class="action-card">
                     <h3>Fighter Workshop</h3>
                     <input type="text" id="new-fighter-name" placeholder="Fighter Name..." class="custom-input">
-                    <p style="font-size: 0.7rem; color: #94a3b8;">Recruits benefit from your retired Coaches.</p>
                     <button class="btn-primary" onclick="createFighter()" style="width: 100%; margin-top: 10px;">Sign (💰500)</button>
+                    <div style="margin-top: 15px; font-size: 0.65rem; color: #94a3b8; text-align: left; padding: 10px; background: #0f172a; border-radius: 5px;">
+                        <b>Potential Traits (20% Chance):</b><br>
+                        🌟 Iron Chin: Less Injuries | ⚡ Fast Learner: Training Bonus<br>
+                        💎 Fan Favorite: Extra Cash | 🔥 KO Artist: Clash Bonus
+                    </div>
                 </div>
             </section>
+            
             <section id="view-history" class="view" style="display:none;"><div id="history-list" class="grid-container"></div></section>
         </main>
     </div>
