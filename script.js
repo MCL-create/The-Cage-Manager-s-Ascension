@@ -1,81 +1,189 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>THE CAGE</title>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
-    <header class="top-nav">
-        <div class="stats-bar">
-            <span>⚡ <b id="energy-val">15/15</b></span>
-            <span>💰 <b id="points-val">1,300</b></span>
-            <span>📅 Wk: <b id="week-val">1</b></span>
+let gameState = {
+    points: 1300, energy: 15, maxEnergy: 15, week: 1, 
+    stable: [], marketFighters: [], matches: [], trophies: 0,
+    upgrades: { medical: false, energyHub: false, scout: false },
+    gymXP: 0, gymLevel: 1, gymName: "The Cage Gym", 
+    gymLogo: null
+};
+
+// --- IMAGE UPLOAD LOGIC ---
+function handleLogoUpload(input) {
+    const file = input.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            gameState.gymLogo = e.target.result;
+            displayLogo(e.target.result);
+            saveData();
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+function displayLogo(data) {
+    const img = document.getElementById('gym-logo-img');
+    const placeholder = document.getElementById('pic-placeholder');
+    if (data && img) {
+        img.src = data;
+        img.style.display = 'block';
+        if (placeholder) placeholder.style.display = 'none';
+    }
+}
+
+// --- CORE ENGINE ---
+function processWeekReset() {
+    if (gameState.week === 24) return triggerClash("GYM");
+    if (gameState.week === 48) return triggerClash("ELITE");
+
+    gameState.week++;
+    gameState.energy = 15;
+    
+    gameState.stable.forEach(f => {
+        if (f.recoveryWeeks > 0) {
+            f.recoveryWeeks--;
+            if (f.recoveryWeeks === 0) f.status = "Healthy";
+        }
+    });
+    
+    updateUI();
+    saveData();
+}
+
+function simulateFight(idx) {
+    const f = gameState.stable[idx];
+    if (gameState.energy < 1) return alert("Out of Energy!");
+
+    gameState.energy--;
+    const win = (f.striking + f.grappling) / 2 > (35 + Math.random() * 40);
+    
+    let prize = win ? 250 : 75;
+    gameState.points += prize;
+    f.status = "Fatigued";
+    f.recoveryWeeks = 1;
+    if (win) f.wins++; else f.losses++;
+
+    gameState.matches.unshift({ week: gameState.week, fighter: f.name, result: win ? "WIN" : "LOSS", earnings: prize });
+    
+    renderStable();
+    updateUI();
+    saveData();
+}
+
+function createFighter() {
+    const nameInput = document.getElementById('new-fighter-name');
+    if (gameState.points < 500) return alert("Need 💰500");
+    
+    gameState.stable.push({
+        name: nameInput.value || "Recruit",
+        striking: 45, grappling: 45, wins: 0, losses: 0,
+        status: "Healthy", recoveryWeeks: 0, emoji: "🥊", division: "Middleweight"
+    });
+    
+    gameState.points -= 500;
+    nameInput.value = "";
+    showView('stable');
+    updateUI();
+    saveData();
+}
+
+// --- CLASH LOGIC ---
+let tourneySelection = [];
+function triggerClash(type) {
+    window.currentClashType = type;
+    showView('tournament');
+    document.getElementById('tourney-status').innerHTML = `<h2>${type} CLASH (Week ${gameState.week})</h2><p>Select your fighters below:</p>`;
+    tourneySelection = [];
+    renderTourneyRoster();
+}
+
+function renderTourneyRoster() {
+    const list = document.getElementById('tourney-roster');
+    const startBtn = document.getElementById('start-clash-btn');
+    startBtn.style.display = tourneySelection.length > 0 ? 'block' : 'none';
+
+    list.innerHTML = gameState.stable.map((f, i) => `
+        <div class="action-card">
+            <b>${f.name}</b><br>
+            <button onclick="toggleTourneyFighter(${i})">${tourneySelection.includes(i) ? 'REMOVE' : 'SELECT'}</button>
         </div>
-        <div id="xp-container" style="width: 200px; height: 10px; background: #334155; border-radius: 5px; margin-top: 5px;">
-            <div id="xp-bar" style="width: 0%; height: 100%; background: #fbbf24; border-radius: 5px; transition: width 0.3s;"></div>
+    `).join('');
+}
+
+function toggleTourneyFighter(idx) {
+    if (tourneySelection.includes(idx)) {
+        tourneySelection = tourneySelection.filter(id => id !== idx);
+    } else {
+        if (tourneySelection.length < 6) tourneySelection.push(idx);
+    }
+    renderTourneyRoster();
+}
+
+function runGymClash() {
+    const type = window.currentClashType;
+    let wins = 0;
+    tourneySelection.forEach(idx => {
+        const f = gameState.stable[idx];
+        if ((f.striking + f.grappling)/2 > (45 + Math.random() * 30)) wins++;
+        f.status = "Fatigued"; f.recoveryWeeks = 2;
+    });
+
+    const gymWin = wins > (tourneySelection.length / 2);
+    if (gymWin) {
+        let reward = type === "ELITE" ? 5000 : 1500;
+        gameState.points += reward;
+        if (type === "ELITE") gameState.trophies++;
+        alert(`VICTORY! +💰${reward}`);
+    } else {
+        alert("DEFEAT!");
+    }
+
+    gameState.week = type === "ELITE" ? 1 : gameState.week + 1;
+    showView('dashboard');
+    updateUI();
+}
+
+// --- UI UTILS ---
+function showView(v) {
+    document.querySelectorAll('.view').forEach(view => view.style.display = 'none');
+    document.getElementById('view-' + v).style.display = 'block';
+    if (v === 'stable') renderStable();
+}
+
+function updateUI() {
+    document.getElementById('points-val').innerText = gameState.points.toLocaleString();
+    document.getElementById('energy-val').innerText = `${gameState.energy}/15`;
+    document.getElementById('week-val').innerText = gameState.week;
+    
+    const log = document.getElementById('news-feed');
+    if (gameState.matches.length > 0) {
+        log.innerHTML = gameState.matches.slice(0, 3).map(m => 
+            `<div>Wk ${m.week}: ${m.fighter} ${m.result} (+💰${m.earnings})</div>`
+        ).join('');
+    }
+
+    if (gameState.trophies > 0) {
+        document.getElementById('gym-name-display').innerText = `${gameState.gymName} 🏆x${gameState.trophies}`;
+    }
+}
+
+function renderStable() {
+    const list = document.getElementById('stable-list');
+    list.innerHTML = gameState.stable.map((f, i) => `
+        <div class="action-card">
+            <h3>${f.emoji} ${f.name}</h3>
+            <p>Status: ${f.status}</p>
+            <button onclick="simulateFight(${i})" ${f.status !== 'Healthy' ? 'disabled' : ''}>FIGHT NOW</button>
         </div>
-    </header>
+    `).join('');
+}
 
-    <div class="container">
-        <aside class="sidebar">
-            <button onclick="showView('dashboard')">🏠 Home</button>
-            <button onclick="showView('stable')">🥋 Stable</button>
-            <button onclick="showView('market')">🛒 Market</button>
-            <button onclick="showView('create')">➕ Create</button>
-            <button onclick="showView('shop')">🏗️ Shop</button>
-            <button onclick="showView('help')">❓ Help</button>
-            <button onclick="saveData()" style="color: #10b981; margin-top: auto;">💾 Save Game</button>
-        </aside>
+function saveData() { localStorage.setItem('theCageSave', JSON.stringify(gameState)); alert("Game Saved!"); }
 
-        <main id="main-content">
-            <section id="view-dashboard" class="view">
-                <div class="action-card" style="text-align: center;">
-                    <div id="logo-container" onclick="document.getElementById('gym-pic-upload').click()" style="width: 100px; height: 100px; border: 2px dashed #fbbf24; border-radius: 50%; margin: 0 auto 15px; cursor: pointer; overflow: hidden; display: flex; align-items: center; justify-content: center;">
-                        <img id="gym-logo-img" src="" style="width: 100%; height: 100%; object-fit: cover; display: none;">
-                        <span id="pic-placeholder" style="font-size: 0.7rem; color: #94a3b8;">UPLOAD LOGO</span>
-                    </div>
-                    <input type="file" id="gym-pic-upload" style="display: none;" accept="image/*" onchange="handleLogoUpload(this)">
-                    
-                    <h2 id="gym-name-display">The Cage Gym</h2>
-                    <div id="news-feed" style="background: #0f172a; padding: 10px; border-radius: 8px; margin-bottom: 15px; min-height: 50px;">
-                        Ready for the season.
-                    </div>
-                    <button id="advance-btn" onclick="processWeekReset()" style="height: 60px; font-size: 1.2rem;">ADVANCE WEEK</button>
-                </div>
-            </section>
-
-            <section id="view-tournament" class="view" style="display:none;">
-                <div id="tourney-status"></div>
-                <button id="start-clash-btn" onclick="runGymClash()" style="display:none; background: #10b981 !important; margin-bottom: 20px;">START CLASH</button>
-                <div id="tourney-roster" class="grid-container"></div>
-            </section>
-
-            <section id="view-stable" class="view" style="display:none;">
-                <div id="stable-list" class="grid-container"></div>
-            </section>
-
-            <section id="view-create" class="view" style="display:none;">
-                <div class="action-card">
-                    <h3>Recruit Workshop Fighter</h3>
-                    <input type="text" id="new-fighter-name" placeholder="Fighter Name..." style="padding: 10px; width: 80%; margin-bottom: 10px;">
-                    <button onclick="createFighter()">Sign (💰500)</button>
-                </div>
-            </section>
-
-            <section id="view-market" class="view" style="display:none;"><div id="market-list" class="grid-container"></div></section>
-            <section id="view-shop" class="view" style="display:none;"><h3>Gym Upgrades coming soon...</h3></section>
-            <section id="view-help" class="view" style="display:none;">
-                <div class="action-card">
-                    <h3>Manager's Manual</h3>
-                    <p>• Weeks 1-23: Use <b>FIGHT NOW</b> in the Stable to earn 💰.</p>
-                    <p>• Week 24: <b>Gym Clash</b> (Mid-season test).</p>
-                    <p>• Week 48: <b>Elite Clash</b> (Win Trophies and 💰5,000).</p>
-                </div>
-            </section>
-        </main>
-    </div>
-    <script src="script.js"></script>
-</body>
-</html>
+window.onload = () => {
+    const saved = localStorage.getItem('theCageSave');
+    if (saved) {
+        gameState = Object.assign(gameState, JSON.parse(saved));
+        if (gameState.gymLogo) displayLogo(gameState.gymLogo);
+    }
+    updateUI();
+};
