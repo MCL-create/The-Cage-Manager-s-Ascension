@@ -1,141 +1,81 @@
-let gameState = {
-    points: 1300, energy: 15, maxEnergy: 15, week: 1, 
-    stable: [], marketFighters: [], matches: [], trophies: 0,
-    upgrades: { medical: false, energyHub: false, scout: false },
-    gymXP: 0, gymLevel: 1, gymName: "The Cage Gym", 
-    coachingBonus: 0, specialization: null, gymLogo: null
-};
-
-// --- CORE CYCLE ---
-
-function processWeekReset() {
-    // End of Year (Week 48) = ELITE CLASH
-    if (gameState.week === 48) {
-        triggerClash("ELITE");
-        return;
-    }
-    // Mid-Season (Week 24) = GYM CLASH
-    if (gameState.week === 24) {
-        triggerClash("GYM");
-        return;
-    }
-
-    gameState.week++;
-    gameState.energy = gameState.upgrades.energyHub ? 25 : 15;
-    
-    gameState.stable.forEach(f => {
-        if (f.recoveryWeeks > 0) {
-            f.recoveryWeeks--;
-            if (f.recoveryWeeks === 0) f.status = "Healthy";
-        }
-    });
-    
-    generateMarketFighters();
-    updateUI();
-    saveData();
-}
-
-// --- FIGHTING SYSTEM ---
-
-function simulateFight(idx) {
-    const f = gameState.stable[idx];
-    if (gameState.energy < 1) return alert("Out of Energy! Advance the week.");
-
-    gameState.energy--;
-    const win = ((f.striking + f.grappling) / 2) > (35 + (gameState.week * 0.4) + Math.random() * 30);
-    
-    let prize = win ? 250 : 75;
-    gameState.points += prize;
-    gameState.gymXP += win ? 100 : 30;
-
-    f.status = "Fatigued";
-    f.recoveryWeeks = 1;
-    if (win) f.wins++; else f.losses++;
-
-    gameState.matches.unshift({ week: gameState.week, fighter: f.name, result: win ? "WIN" : "LOSS", earnings: prize });
-    
-    updateUI();
-    renderStable();
-    saveData();
-}
-
-// --- CLASH SYSTEM ---
-
-function triggerClash(type) {
-    showView('tournament');
-    const rival = rivalGyms[Math.floor(Math.random() * rivalGyms.length)];
-    const isElite = type === "ELITE";
-    
-    document.getElementById('tourney-status').innerHTML = `
-        <div class="action-card" style="border: 2px solid ${isElite ? '#f59e0b' : '#ef4444'};">
-            <h2 style="color:${isElite ? '#f59e0b' : 'white'}">${type} CLASH</h2>
-            <p>Coach Stone: "Time for a lesson."</p>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>THE CAGE</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header class="top-nav">
+        <div class="stats-bar">
+            <span>⚡ <b id="energy-val">15/15</b></span>
+            <span>💰 <b id="points-val">1,300</b></span>
+            <span>📅 Wk: <b id="week-val">1</b></span>
         </div>
-    `;
-    
-    // Pass the type to the run function
-    window.currentClashType = type;
-    renderTourneyRoster();
-}
-
-function runGymClash() {
-    let wins = 0;
-    const type = window.currentClashType;
-    const isElite = type === "ELITE";
-
-    tourneySelection.forEach(idx => {
-        const f = gameState.stable[idx];
-        const difficulty = isElite ? 1.5 : 1.0;
-        const rivalPower = (45 + (gameState.gymLevel * 5)) * difficulty;
-        if ((f.striking + f.grappling)/2 > (rivalPower + Math.random()*20)) wins++;
-        f.status = "Fatigued"; f.recoveryWeeks = 2;
-    });
-
-    const gymWin = wins > (tourneySelection.length / 2);
-    let reward = isElite ? 5000 : 1500;
-    
-    if (gymWin) {
-        gameState.points += reward;
-        if (isElite) {
-            gameState.trophies++;
-            alert(`🏆 ELITE CHAMPIONS! Earned 💰${reward} and a Trophy!`);
-        } else {
-            alert(`✅ GYM CLASH VICTORY! Earned 💰${reward}`);
-        }
-    } else {
-        alert("❌ Clash Defeat. Your gym needs more training.");
-    }
-
-    gameState.week = isElite ? 1 : gameState.week + 1; // Reset year if Elite
-    showView('dashboard');
-    updateUI();
-    saveData();
-}
-
-// --- UI UPDATES ---
-
-function renderStable() {
-    const list = document.getElementById('stable-list');
-    list.innerHTML = gameState.stable.map((f, i) => `
-        <div class="action-card">
-            <h3>${f.emoji} ${f.name}</h3>
-            <p style="font-size:0.75rem; color:#94a3b8;">${f.division} | Rec: ${f.wins}-${f.losses}</p>
-            <button onclick="simulateFight(${i})" ${f.status !== 'Healthy' ? 'disabled' : ''}>
-                ${f.status === 'Healthy' ? 'FIGHT NOW (-1 ⚡)' : 'RECOVERING'}
-            </button>
-            <button onclick="sellFighter(${i})" class="btn-secondary">SELL</button>
+        <div id="xp-container" style="width: 200px; height: 10px; background: #334155; border-radius: 5px; margin-top: 5px;">
+            <div id="xp-bar" style="width: 0%; height: 100%; background: #fbbf24; border-radius: 5px; transition: width 0.3s;"></div>
         </div>
-    `).join('');
-}
+    </header>
 
-function updateUI() {
-    document.getElementById('points-val').innerText = gameState.points.toLocaleString();
-    document.getElementById('energy-val').innerText = `${gameState.energy}/${gameState.maxEnergy}`;
-    document.getElementById('week-val').innerText = gameState.week;
-    
-    // Display trophies on dashboard
-    const trophyDisplay = document.getElementById('gym-name-display');
-    if (gameState.trophies > 0) {
-        trophyDisplay.innerHTML = `${gameState.gymName} 🏆x${gameState.trophies}`;
-    }
-}
+    <div class="container">
+        <aside class="sidebar">
+            <button onclick="showView('dashboard')">🏠 Home</button>
+            <button onclick="showView('stable')">🥋 Stable</button>
+            <button onclick="showView('market')">🛒 Market</button>
+            <button onclick="showView('create')">➕ Create</button>
+            <button onclick="showView('shop')">🏗️ Shop</button>
+            <button onclick="showView('help')">❓ Help</button>
+            <button onclick="saveData()" style="color: #10b981; margin-top: auto;">💾 Save Game</button>
+        </aside>
+
+        <main id="main-content">
+            <section id="view-dashboard" class="view">
+                <div class="action-card" style="text-align: center;">
+                    <div id="logo-container" onclick="document.getElementById('gym-pic-upload').click()" style="width: 100px; height: 100px; border: 2px dashed #fbbf24; border-radius: 50%; margin: 0 auto 15px; cursor: pointer; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+                        <img id="gym-logo-img" src="" style="width: 100%; height: 100%; object-fit: cover; display: none;">
+                        <span id="pic-placeholder" style="font-size: 0.7rem; color: #94a3b8;">UPLOAD LOGO</span>
+                    </div>
+                    <input type="file" id="gym-pic-upload" style="display: none;" accept="image/*" onchange="handleLogoUpload(this)">
+                    
+                    <h2 id="gym-name-display">The Cage Gym</h2>
+                    <div id="news-feed" style="background: #0f172a; padding: 10px; border-radius: 8px; margin-bottom: 15px; min-height: 50px;">
+                        Ready for the season.
+                    </div>
+                    <button id="advance-btn" onclick="processWeekReset()" style="height: 60px; font-size: 1.2rem;">ADVANCE WEEK</button>
+                </div>
+            </section>
+
+            <section id="view-tournament" class="view" style="display:none;">
+                <div id="tourney-status"></div>
+                <button id="start-clash-btn" onclick="runGymClash()" style="display:none; background: #10b981 !important; margin-bottom: 20px;">START CLASH</button>
+                <div id="tourney-roster" class="grid-container"></div>
+            </section>
+
+            <section id="view-stable" class="view" style="display:none;">
+                <div id="stable-list" class="grid-container"></div>
+            </section>
+
+            <section id="view-create" class="view" style="display:none;">
+                <div class="action-card">
+                    <h3>Recruit Workshop Fighter</h3>
+                    <input type="text" id="new-fighter-name" placeholder="Fighter Name..." style="padding: 10px; width: 80%; margin-bottom: 10px;">
+                    <button onclick="createFighter()">Sign (💰500)</button>
+                </div>
+            </section>
+
+            <section id="view-market" class="view" style="display:none;"><div id="market-list" class="grid-container"></div></section>
+            <section id="view-shop" class="view" style="display:none;"><h3>Gym Upgrades coming soon...</h3></section>
+            <section id="view-help" class="view" style="display:none;">
+                <div class="action-card">
+                    <h3>Manager's Manual</h3>
+                    <p>• Weeks 1-23: Use <b>FIGHT NOW</b> in the Stable to earn 💰.</p>
+                    <p>• Week 24: <b>Gym Clash</b> (Mid-season test).</p>
+                    <p>• Week 48: <b>Elite Clash</b> (Win Trophies and 💰5,000).</p>
+                </div>
+            </section>
+        </main>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
