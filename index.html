@@ -3,8 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>The Cage: Manager Ascension</title>
+    <title>THE CAGE: Manager Ascension</title>
     <link rel="stylesheet" href="style.css">
+    <style>
+        :root { --primary: #f59e0b; --bg: #0f172a; --card: #1e293b; --text: #f8fafc; }
+        .btn-diff { opacity: 0.6; flex: 1; font-size: 0.7rem; padding: 10px; cursor: pointer; border: 1px solid #475569; background: #334155; color: white; border-radius: 5px;}
+        .btn-diff.active { opacity: 1; border: 2px solid var(--primary); background: #451a03; }
+        .spec-card { border: 2px dashed #94a3b8; padding: 15px; margin-top: 10px; cursor: pointer; border-radius: 10px;}
+        .spec-card:hover { border-color: var(--primary); background: #0f172a; }
+        .weight-tag { color: #60a5fa; font-size: 0.65rem; font-weight: bold; margin-bottom: 5px; }
+        .trait-tag { color: var(--primary); font-size: 0.65rem; font-weight: bold; margin-top: 5px; }
+    </style>
 </head>
 <body>
     <header class="top-nav">
@@ -15,13 +24,12 @@
             <span>📅 Wk: <b id="week-val">1</b></span>
         </div>
         <div style="margin-top: 10px; background: #334155; border-radius: 10px; height: 10px; width: 100%; overflow: hidden; border: 1px solid #475569;">
-            <div id="xp-bar" style="background: #f59e0b; width: 0%; height: 100%; transition: width 0.5s;"></div>
+            <div id="xp-bar" style="background: var(--primary); width: 0%; height: 100%; transition: width 0.5s;"></div>
         </div>
-        <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; font-size: 0.65rem; margin-top: 5px; color: #94a3b8;">
-            <span>Lvl <span id="gym-level-val">1</span></span>
-            <span>Created: <b id="created-count">0</b>/8</span>
-            <span>Bought: <b id="purchased-count">0</b>/7</span>
-            <span style="color: #f59e0b;">Coach Bonus: <b id="coach-bonus-val">+0</b></span>
+        <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; font-size: 0.6rem; margin-top: 5px; color: #94a3b8;">
+            <span>PRESTIGE LVL: <b id="gym-level-val">1</b></span>
+            <span>COACH BONUS: <b id="coach-bonus-val">+0</b></span>
+            <span id="spec-tag" style="color: var(--primary); font-weight: bold;"></span>
         </div>
     </header>
 
@@ -32,47 +40,55 @@
             <button onclick="showView('shop')">🏗️ Shop</button>
             <button onclick="showView('market')">🛒 Market</button>
             <button onclick="showView('creator')">➕ Create</button>
-            <button onclick="showView('history')">📜 Hall of Fame</button>
+            <button onclick="showView('history')">📜 Legacy</button>
             <button class="exit-btn" onclick="saveData()" style="margin-top: auto; color: #10b981;">💾 Save</button>
         </aside>
 
         <main id="main-content">
             <section id="view-dashboard" class="view">
-                <div class="action-card" style="text-align: center; border: 2px solid #f59e0b;">
+                <div class="action-card" style="text-align: center; border: 2px solid var(--primary);">
+                    <div onclick="document.getElementById('gym-pic-upload').click()" 
+                         style="width: 80px; height: 80px; border-radius: 50%; border: 2px solid var(--primary); margin: 0 auto 10px; cursor: pointer; overflow: hidden; background: #0f172a; display: flex; align-items: center; justify-content: center;">
+                        <img id="gym-logo-img" src="" style="width: 100%; height: 100%; object-fit: cover; display: none;">
+                        <span id="pic-placeholder" style="font-size: 0.5rem; color: #94a3b8;">LOGO</span>
+                    </div>
+                    <input type="file" id="gym-pic-upload" style="display: none;" accept="image/*" onchange="handleLogoUpload(this)">
+                    
                     <h2 id="gym-name-display" contenteditable="true" onblur="updateGymName(this.innerText)">The Cage Gym</h2>
-                    <p id="news-feed" style="color: #94a3b8;">Gym Operational. Plan your roster for the next Clash.</p>
+                    <p id="news-feed" style="color: #94a3b8; font-size: 0.8rem;">Advance week to refresh energy & market.</p>
                     <button class="btn-primary" onclick="processWeekReset()" style="width: 100%; height: 50px; font-size: 1.1rem; margin-top: 10px;">ADVANCE WEEK</button>
+                </div>
+
+                <div id="spec-picker" style="display:none; margin-top: 20px; text-align: center;">
+                    <h3 style="color: var(--primary);">LEVEL 5: CHOOSE SPECIALIZATION</h3>
+                    <div class="spec-card" onclick="setSpecialization('Striking')">
+                        <h4>Striking Academy</h4>
+                        <p style="font-size:0.7rem;">+10 Striking for all future recruits.</p>
+                    </div>
+                    <div class="spec-card" onclick="setSpecialization('Grappling')">
+                        <h4>Submission Sanctuary</h4>
+                        <p style="font-size:0.7rem;">+10 Grappling for all future recruits.</p>
+                    </div>
                 </div>
             </section>
 
             <section id="view-tournament" class="view" style="display:none;">
-                <h1 style="color: #f59e0b;">🏆 GYM CLASH: WEEK <span id="tourney-week"></span></h1>
-                <div id="tourney-status" style="margin-bottom: 20px;"></div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
-                    <div class="action-card"><h4>Your Selection</h4><div id="selected-squad-list"></div></div>
-                    <div class="action-card"><h4>Rival Gym</h4><div id="opponent-squad-list"></div></div>
-                </div>
-                <button id="start-clash-btn" class="btn-primary" style="width: 100%; display: none; height: 50px;" onclick="runGymClash()">START CLASH</button>
+                <h2 style="color: var(--primary);">WEEK <span id="tourney-week"></span> CLASH</h2>
+                <div id="tourney-status"></div>
+                <button id="start-clash-btn" class="btn-primary" style="width: 100%; display: none; margin-top: 10px; height: 50px;" onclick="runGymClash()">START CLASH</button>
                 <div id="tourney-roster" class="grid-container"></div>
             </section>
 
             <section id="view-stable" class="view" style="display:none;"><div id="stable-list" class="grid-container"></div></section>
             <section id="view-shop" class="view" style="display:none;"><div id="shop-list" class="grid-container"></div></section>
             <section id="view-market" class="view" style="display:none;"><div id="market-list" class="grid-container"></div></section>
-            
             <section id="view-creator" class="view" style="display:none;">
                 <div class="action-card">
                     <h3>Fighter Workshop</h3>
                     <input type="text" id="new-fighter-name" placeholder="Fighter Name..." class="custom-input">
                     <button class="btn-primary" onclick="createFighter()" style="width: 100%; margin-top: 10px;">Sign (💰500)</button>
-                    <div style="margin-top: 15px; font-size: 0.65rem; color: #94a3b8; text-align: left; padding: 10px; background: #0f172a; border-radius: 5px;">
-                        <b>Potential Traits (20% Chance):</b><br>
-                        🌟 Iron Chin: Less Injuries | ⚡ Fast Learner: Training Bonus<br>
-                        💎 Fan Favorite: Extra Cash | 🔥 KO Artist: Clash Bonus
-                    </div>
                 </div>
             </section>
-            
             <section id="view-history" class="view" style="display:none;"><div id="history-list" class="grid-container"></div></section>
         </main>
     </div>
